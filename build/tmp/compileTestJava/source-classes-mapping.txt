@@ -1,0 +1,6 @@
+plc/project/LexerTests.java
+ plc.project.LexerTests
+plc/homework/RegexTests.java
+ plc.homework.RegexTests
+plc/project/ParserExpressionTests.java
+ plc.project.ParserExpressionTests
