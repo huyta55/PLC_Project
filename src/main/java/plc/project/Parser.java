@@ -599,7 +599,6 @@ public final class Parser {
         // throw new UnsupportedOperationException(); //TODO
         Ast.Expression a = parseComparisonExpression();
         while ((match("&&") || (match("||")))) {
-            System.out.println("got here");
             String operator = tokens.get(-1).getLiteral();
             Ast.Expression b = new Ast.Expression.Binary(operator, a, parseComparisonExpression());
             a = b;
