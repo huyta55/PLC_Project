@@ -81,7 +81,6 @@ public class GeneratorTests {
     void testDeclarationStatement(String test, Ast.Statement.Declaration ast, String expected) {
         test(ast, expected);
     }
-
     private static Stream<Arguments> testDeclarationStatement() {
         return Stream.of(
                 Arguments.of("Declaration",
@@ -104,7 +103,6 @@ public class GeneratorTests {
     void testIfStatement(String test, Ast.Statement.If ast, String expected) {
         test(ast, expected);
     }
-
     private static Stream<Arguments> testIfStatement() {
         return Stream.of(
                 Arguments.of("If",
@@ -149,7 +147,6 @@ public class GeneratorTests {
     void testSwitchStatement(String test, Ast.Statement.Switch ast, String expected) {
         test(ast, expected);
     }
-
     private static Stream<Arguments> testSwitchStatement() {
         return Stream.of(
                 Arguments.of("Switch",
@@ -207,7 +204,6 @@ public class GeneratorTests {
     void testBinaryExpression(String test, Ast.Expression.Binary ast, String expected) {
         test(ast, expected);
     }
-
     private static Stream<Arguments> testBinaryExpression() {
         return Stream.of(
                 Arguments.of("And",
@@ -225,6 +221,22 @@ public class GeneratorTests {
                                 init(new Ast.Expression.Literal(BigInteger.TEN), ast -> ast.setType(Environment.Type.INTEGER))
                         ), ast -> ast.setType(Environment.Type.STRING)),
                         "\"Ben\" + 10"
+                ),
+                Arguments.of("Addition",
+                        // 1 + 10
+                        init(new Ast.Expression.Binary("+",
+                                init(new Ast.Expression.Literal(1), ast -> ast.setType(Environment.Type.INTEGER)),
+                                init(new Ast.Expression.Literal(10), ast -> ast.setType(Environment.Type.INTEGER))
+                                ), ast -> ast.setType(Environment.Type.STRING)),
+                        "1 + 10"
+                ),
+                Arguments.of("Comparison",
+                        // 1.3 > 10.2
+                        init(new Ast.Expression.Binary(">",
+                                init(new Ast.Expression.Literal(1.3), ast -> ast.setType(Environment.Type.DECIMAL)),
+                                init(new Ast.Expression.Literal(10.2), ast -> ast.setType(Environment.Type.DECIMAL))
+                        ), ast -> ast.setType(Environment.Type.STRING)),
+                        "1.3 > 10.2"
                 )
         );
     }
@@ -243,10 +255,14 @@ public class GeneratorTests {
                                 init(new Ast.Expression.Literal("Hello, World!"), ast -> ast.setType(Environment.Type.STRING))
                         )), ast -> ast.setFunction(new Environment.Function("print", "System.out.println", Arrays.asList(Environment.Type.ANY), Environment.Type.NIL, args -> Environment.NIL))),
                         "System.out.println(\"Hello, World!\")"
+                ),
+                Arguments.of("Zero Arguments",
+                        // function()
+                        init(new Ast.Expression.Function("function", Arrays.asList()), ast -> ast.setFunction(new Environment.Function("function", "function", Arrays.asList(Environment.Type.ANY), Environment.Type.NIL, args -> Environment.NIL))),
+                        "function()"
                 )
         );
     }
-
     /**
      * Helper function for tests, using a StringWriter as the output stream.
      */
@@ -255,7 +271,6 @@ public class GeneratorTests {
         new Generator(new PrintWriter(writer)).visit(ast);
         Assertions.assertEquals(expected, writer.toString());
     }
-
     /**
      * Runs a callback on the given value, used for inline initialization.
      */
@@ -264,4 +279,32 @@ public class GeneratorTests {
         return value;
     }
 
+    // Custom test cases
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void testLiteralExpression(String test, Ast.Expression.Literal ast, String expected) { test(ast, expected); }
+    private static Stream<Arguments> testLiteralExpression() {
+        return Stream.of(
+                Arguments.of("TRUE",
+                        // TRUE
+                        init(new Ast.Expression.Literal("TRUE"), ast -> ast.setType(Environment.Type.BOOLEAN)),
+                        "TRUE"
+                ),
+                Arguments.of("Integer",
+                        // 1
+                        init(new Ast.Expression.Literal(1), ast-> ast.setType(Environment.Type.INTEGER)),
+                        "1"
+                ),
+                Arguments.of("Decimal",
+                        // 123.456
+                        init(new Ast.Expression.Literal(123.456), ast -> ast.setType(Environment.Type.DECIMAL)),
+                        "123.456"
+                ),
+                Arguments.of("String",
+                        // Hello World
+                        init(new Ast.Expression.Literal("Hello World"), ast -> ast.setType(Environment.Type.STRING)),
+                        "\"Hello World\""
+                )
+        );
+    }
 }

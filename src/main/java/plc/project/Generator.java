@@ -31,35 +31,120 @@ public final class Generator implements Ast.Visitor<Void> {
     @Override
     public Void visit(Ast.Source ast) {
         // create a "class Main {"
-
+        print("public class Main {");
+        newline(indent);
+        newline(++indent);
         // Declare globals -> properties
+        for (int i = 0; i < ast.getGlobals().size(); ++i) {
+            print(ast.getGlobals().get(i));
+            if (i < ast.getGlobals().size() - 1) {
+                newline(indent);
+            }
+            else {
+                newline(indent--);
+            }
+        }
 
         // Declare "public static void main(String[] args) {
         //              System.exit(new Main().main());
         //          }"
+        print("public static void main(String[] args) {");
+        newline(++indent);
+        print("System.exit(new Main().main());");
+        newline(--indent);
+        print("}");
+        newline(--indent);
+        newline(++indent);
+
 
         // Declare each of our functions -> methods
         // One of our functions -> methods is called main()!
+        for (int i = 0; i < ast.getFunctions().size(); ++i) {
+            print(ast.getFunctions().get(i));
+            if (i < ast.getFunctions().size() - 1) {
+                newline(indent);
+            }
+            else {
+                newline(--indent);
+            }
+        }
+        newline(indent);
         // print "}" to close the class Main
+        print ("}");
+
         return null;
     }
 
     @Override
     public Void visit(Ast.Global ast) {
-        throw new UnsupportedOperationException(); //TODO
+        // Mutable
+        if (ast.getMutable() && ast.getName().equals("list")) {
+            print(ast.getVariable().getType().getJvmName(), "[] ", ast.getName());
+            if (ast.getValue().isPresent()) {
+                print(" = ", ast.getValue().get());
+            }
+            print(";");
+        }
+        else if (ast.getMutable()) {
+            print(ast.getTypeName(), " ", ast.getName());
+            // if value is present, then = value
+            if (ast.getValue().isPresent()) {
+                print(" = ", ast.getValue().get());
+            }
+            print(";");
+        }
+        // Immutable
+        else {
+            print("final ", ast.getTypeName(), " ", ast.getName());
+            // if value is present, then = value
+            if (ast.getValue().isPresent()) {
+                print(" = ", ast.getValue().get());
+            }
+            print(";");
+        }
+        return null;
     }
 
     @Override
     public Void visit(Ast.Function ast) {
-        throw new UnsupportedOperationException(); //TODO
+        print(ast.getFunction().getReturnType().getJvmName(), " ", ast.getFunction().getName(), "(");
+        for (int i = 0; i < ast.getParameters().size(); ++i) {
+            print(ast.getParameters().get(i));
+            // if not last parameter, print comma and space
+            if (i < ast.getParameters().size() - 1) {
+                print(", ");
+            }
+        }
+        print (") {");
+        // if statements are empty then print the closing brace on the same line
+        if (!ast.getStatements().isEmpty()) {
+            newline(++indent);
+            for (int i = 0; i < ast.getStatements().size(); ++i) {
+                print (ast.getStatements().get(i));
+                // if not last statement, then newline w/o subtracting indent
+                if (i < ast.getStatements().size() - 1) {
+                    newline(indent);
+                }
+                else {
+                    newline(--indent);
+                }
+            }
+        }
+        print("}");
+
+        return null;
     }
 
     @Override
+    // TODO: Check that this is all that has to be done
     public Void visit(Ast.Statement.Expression ast) {
-        throw new UnsupportedOperationException(); //TODO
+        // printing the expression found in ast followed by a semicolon
+        print(ast.getExpression(), ";");
+        return null;
     }
 
     @Override
+    // Done during lecture
     public Void visit(Ast.Statement.Declaration ast) {
         // write: TYPE variable_name
         print(ast.getVariable().getType().getJvmName(), " ", ast.getVariable().getJvmName());
@@ -75,22 +160,85 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Statement.Assignment ast) {
-        throw new UnsupportedOperationException(); //TODO
+        print(ast.getReceiver(), " = ", ast.getValue(), ";");
+        return null;
     }
 
     @Override
+    // TODO: Ask if we have to account for empty if statements
     public Void visit(Ast.Statement.If ast) {
-        throw new UnsupportedOperationException(); //TODO
+        // printing if
+        print("if (", ast.getCondition(), ") {");
+        newline(++indent);
+        // print out all the then statements
+        for (int i = 0; i < ast.getThenStatements().size(); ++i) {
+            print(ast.getThenStatements().get(i));
+            // if not last statement, then newline
+            if (i < ast.getThenStatements().size() - 1) {
+                newline(indent);
+            }
+        }
+        newline(--indent);
+        print("}");
+        // if there is an else statement then print out the statements
+        if (!ast.getElseStatements().isEmpty()) {
+            print(" else {");
+            newline(++indent);
+            for (int i = 0; i < ast.getElseStatements().size(); ++i) {
+                print(ast.getElseStatements().get(i));
+                // if not last statement, then newline
+                if (i < ast.getElseStatements().size() - 1) {
+                    newline(indent);
+                }
+            }
+            newline(--indent);
+            print("}");
+        }
+        return null;
     }
 
     @Override
     public Void visit(Ast.Statement.Switch ast) {
-        throw new UnsupportedOperationException(); //TODO
+        // printing switch keyword
+        print("switch (", ast.getCondition(), ") {");
+        newline(++indent);
+        for (int i = 0; i < ast.getCases().size(); ++i) {
+            print(ast.getCases().get(i));
+            // Accounting for the indenting issue after the default case
+            if (i < ast.getCases().size() - 1) {
+                newline(--indent);
+            }
+            else {
+                indent -= 2;
+                newline(indent);
+            }
+        }
+        print("}");
+        return null;
     }
 
     @Override
     public Void visit(Ast.Statement.Case ast) {
-        throw new UnsupportedOperationException(); //TODO
+        // printing case keyword
+        if (ast.getValue().isPresent()) {
+            // if the ast has a value, then it's not the default case
+            print("case ", ast.getValue().get(), ":");
+        }
+        else {
+            // else it's the default case
+            print("default:");
+        }
+        newline(++indent);
+        // printing all the case statements
+        for (int i = 0; i < ast.getStatements().size(); ++i) {
+            print(ast.getStatements().get(i));
+            // if not last statement, then newline
+            if (i < ast.getStatements().size() - 1) {
+                newline(indent);
+            }
+        }
+
+        return null;
     }
 
     @Override
@@ -121,38 +269,112 @@ public final class Generator implements Ast.Visitor<Void> {
     }
 
     @Override
+    // TODO: Check that this is all that has to be done
     public Void visit(Ast.Statement.Return ast) {
-        throw new UnsupportedOperationException(); //TODO
+        // Printing return
+        print("return ", ast.getValue(), ";");
+        return null;
     }
 
     @Override
+    // TODO: Check that this is all that has to be done
     public Void visit(Ast.Expression.Literal ast) {
-        throw new UnsupportedOperationException(); //TODO
+        // Checking if the ast contains a string or a character, since those needs to be printed with "
+        if (ast.getType().equals(Environment.Type.STRING)) {
+            print("\"", ast.getLiteral(), "\"");
+            return null;
+        }
+        if (ast.getType().equals(Environment.Type.BOOLEAN)) {
+            print(ast.getLiteral());
+            return null;
+        }
+        if (ast.getType().equals(Environment.Type.CHARACTER)) {
+            print("'", ast.getLiteral(), "'");
+            return null;
+        }
+        // Printing the literal value found in the AST
+        print(ast.getLiteral());
+        return null;
     }
 
     @Override
+    // TODO: Check that this is all that has to be done
     public Void visit(Ast.Expression.Group ast) {
-        throw new UnsupportedOperationException(); //TODO
+        print("(", ast.getExpression(), ")");
+        return null;
     }
 
     @Override
+    // TODO: Ask if there are any other operator cases I have to worry about
     public Void visit(Ast.Expression.Binary ast) {
-        throw new UnsupportedOperationException(); //TODO
+        // Check the Binary Operator
+        switch (ast.getOperator()) {
+            case "AND":
+                // Generate the AST left expression
+                print(ast.getLeft());
+                print(" && ");
+                // Generate the AST right expression
+                print(ast.getRight());
+                break;
+            case "OR":
+                print(ast.getLeft());
+                print(" | ");
+                // Generate the AST right expression
+                print(ast.getRight());
+                break;
+            case "^":
+                print("Math.pow(", ast.getLeft(), ", ", ast.getRight(), ")");
+                break;
+            default:
+                print(ast.getLeft(), " ", ast.getOperator(), " ", ast.getRight());
+        }
+        return null;
     }
 
     @Override
     public Void visit(Ast.Expression.Access ast) {
-        throw new UnsupportedOperationException(); //TODO
+        // if an offset is present, then a list is being accessed
+        if (ast.getOffset().isPresent()) {
+            print(ast.getVariable().getJvmName(), "[", ast.getOffset().get(), "]");
+        }
+        // else just print the JVM name of the variable stored in the AST
+        print (ast.getVariable().getJvmName());
+        return null;
     }
 
     @Override
     public Void visit(Ast.Expression.Function ast) {
-        throw new UnsupportedOperationException(); //TODO
+        // printing function name
+        print(ast.getFunction().getJvmName());
+        // printing a comma separated list of generated argument expressions surrounded by parenthesis
+        print("(");
+        for (int i = 0; i < ast.getArguments().size(); ++i) {
+            // printing the current argument
+            print(ast.getArguments().get(i));
+            // if it's not the last argument, print a comma and space
+            if (i < ast.getArguments().size() - 1) {
+                print(", ");
+            }
+        }
+        print(")");
+        return null;
     }
 
     @Override
+    // TODO: Ask if this is all I have to do for PlcList
     public Void visit(Ast.Expression.PlcList ast) {
-        throw new UnsupportedOperationException(); //TODO
+        // print brace
+        print ("{");
+        for (int i = 0; i < ast.getValues().size(); ++i) {
+            // printing the current list value
+            print(ast.getValues().get(i));
+            // if not the last value, print comma and space
+            if (i < ast.getValues().size() - 1) {
+                print(", ");
+            }
+        }
+        print("}");
+        return null;
     }
 
 }
