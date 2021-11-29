@@ -1,5 +1,6 @@
 package plc.project;
 
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
@@ -117,6 +118,7 @@ public final class Parser {
                     throwException("Expecting identifier", 0);
                 }
                 if (match(Token.Type.IDENTIFIER)) {
+                    String typeName = tokens.get(-1).getLiteral();
                     // Check for the '='
                     if (!tokens.has(0)) {
                         throwException("Missing =", 0);
@@ -147,7 +149,7 @@ public final class Parser {
                                 throwException("Missing Token", 0);
                             }
                             if (match("]")) {
-                                return new Ast.Global(name, true, Optional.of(plcList));
+                                return new Ast.Global(name, typeName,true, Optional.of(plcList));
                             } else {
                                 throwException("Expecting Closing Bracket ]", 1);
                             }
@@ -191,13 +193,14 @@ public final class Parser {
             if (!match(Token.Type.IDENTIFIER)) {
                 throwException("Expecting identifier", 0);
             }
+            String typeName = tokens.get(-1).getLiteral();
             // Check whether there is a = that follows
             if (match("=")) {
                 // Check that there is a token that comes after the =
                 if (!tokens.has(0)) {
                     throw new ParseException("Expecting Identifier", tokens.get(-1).getIndex() + tokens.get(-1).getLiteral().length());
                 }
-                return new Ast.Global(name, true, Optional.of(parseExpression()));
+                return new Ast.Global(name, typeName, true, Optional.of(parseExpression()));
             }
             // if there's a token there, but it's not the =, then throw exception
             else if (tokens.has(0)) {
@@ -205,7 +208,7 @@ public final class Parser {
             }
             // else it's just a variable and identifier so move on accordingly
             Optional<Ast.Expression> expressionOptional = Optional.empty();
-            return new Ast.Global(name, true, expressionOptional);
+            return new Ast.Global(name, typeName, true, expressionOptional);
         } else {
             throw new ParseException("Missing Identifier", tokens.get(-1).getIndex() + tokens.get(-1).getLiteral().length());
         }
@@ -276,6 +279,17 @@ public final class Parser {
                     // TODO: Ask the TA what the different b/w new ArrayList and Collections.EmptyList is
                     String parameter1 = tokens.get(-1).getLiteral();
                     parameterList.add(parameter1);
+                    // Checking the : after the 2nd identifier
+                    checkToken();
+                    if (!match(":")) {
+                        throwException("Expecting :", 1);
+                    }
+                    // Checking the 2nd identifier after the ( that tells the type
+                    checkToken();
+                    if (!match(Token.Type.IDENTIFIER)) {
+                        throwException("Expecting Identifier", 1);
+                    }
+                    Optional<String> typeName = Optional.of(tokens.get(-1).getLiteral());
                     // Keep the loop going while there's another comma to parse as there are more parameters
                     while (match(",")) {
                         // Check that there's a token after the ','. Else it's a trailing comma
@@ -300,11 +314,13 @@ public final class Parser {
                             if (match("END")) {
                                 // If it's empty list of statement, then create the Ast.Function using the name and parameters from earlier;
                                 List<Ast.Statement> statementList = new ArrayList<Ast.Statement>();
-                                return new Ast.Function(functionName, parameterList, statementList);
+                                List<String> statementsTypes = new ArrayList<String>();
+                                return new Ast.Function(functionName, statementsTypes, parameterList, typeName, statementList);
                             }
                             // Else parse the statements
                             else {
                                 List<Ast.Statement> statementList = parseBlock();
+                                List<String> statementsTypes = new ArrayList<String>();
                                 return new Ast.Function(functionName, parameterList, statementList);
                             }
                         } else {
@@ -396,17 +412,46 @@ public final class Parser {
         tokens.advance();
         Token Name = tokens.get(0);
         tokens.advance();
+        // if the token that follows is a ";", then it's just Let IDENTIFIER;
         if (peek(";")) {
             parseSemicolon();
             return new Ast.Statement.Declaration(Name.getLiteral(), Optional.empty());
+        }
+        // Using boolean to see if there is a typeName at all
+        boolean typeCheck = false;
+        Optional<String> typeName = Optional.of("hi");
+        // Checking for the :
+        checkToken();
+        if (match(":")) {
+            // Checking for the Identifier
+            checkToken();
+            if (!match(Token.Type.IDENTIFIER)) {
+                throwException("Expecting Identifier", 1);
+            }
+            typeCheck = true;
+            typeName = Optional.of(tokens.get(-1).getLiteral());
+        }
+        if (peek(";")) {
+            parseSemicolon();
+            if (typeCheck) {
+                return new Ast.Statement.Declaration(Name.getLiteral(), typeName, Optional.empty());
+            }
+            else {
+                return new Ast.Statement.Declaration(Name.getLiteral(), Optional.empty());
+            }
+
         }
         if (peek("=")) {
             tokens.advance();
         }
         Ast.Expression val = parseExpression();
         parseSemicolon();
-        return new Ast.Statement.Declaration(Name.getLiteral(), Optional.of(val));
-
+        if (typeCheck) {
+            return new Ast.Statement.Declaration(Name.getLiteral(), typeName, Optional.of(val));
+        }
+        else {
+            return new Ast.Statement.Declaration(Name.getLiteral(), Optional.of(val));
+        }
     }
 
     /**
