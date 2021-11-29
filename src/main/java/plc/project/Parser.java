@@ -107,46 +107,66 @@ public final class Parser {
         }
         if (match(Token.Type.IDENTIFIER)) {
             String name = tokens.get(-1).getLiteral();
-            // Check for the '='
+            // Check for the :
             if (!tokens.has(0)) {
-                throwException("Missing =", 0);
+                throwException("Missing :", 0);
             }
-            if (match("=")) {
-                // Check for the [
+            if (match(":")) {
+                // Check for the identifier after the :
                 if (!tokens.has(0)) {
-                    throwException("Missing =", 0);
+                    throwException("Expecting identifier", 0);
                 }
-                if (match("[")) {
+                if (match(Token.Type.IDENTIFIER)) {
+                    // Check for the '='
                     if (!tokens.has(0)) {
-                        throwException("Missing [", 0);
+                        throwException("Missing =", 0);
                     }
-                    // Check for the first expression after the [
-                    List<Ast.Expression> expressionList = new ArrayList<Ast.Expression>();
-                    expressionList.add(parseExpression());
-                    // While there are ", expression", add them to the expression list
-                    while (match(",")) {
-                        // Check that there's an expression after
+                    if (match("=")) {
+                        // Check for the [
                         if (!tokens.has(0)) {
-                            throwException("Missing token", 0);
+                            throwException("Missing =", 0);
                         }
-                        expressionList.add(parseExpression());
-                    }
-                    Ast.Expression.PlcList plcList = new Ast.Expression.PlcList(expressionList);
-                    // check for the closing ]
-                    if (!tokens.has(0)) {
-                        throwException("Missing Token", 0);
-                    }
-                    if (match("]")) {
-                        return new Ast.Global(name, true, Optional.of(plcList));
+                        if (match("[")) {
+                            if (!tokens.has(0)) {
+                                throwException("Missing [", 0);
+                            }
+                            // Check for the first expression after the [
+                            List<Ast.Expression> expressionList = new ArrayList<Ast.Expression>();
+                            expressionList.add(parseExpression());
+                            // While there are ", expression", add them to the expression list
+                            while (match(",")) {
+                                // Check that there's an expression after
+                                if (!tokens.has(0)) {
+                                    throwException("Missing token", 0);
+                                }
+                                expressionList.add(parseExpression());
+                            }
+                            Ast.Expression.PlcList plcList = new Ast.Expression.PlcList(expressionList);
+                            // check for the closing ]
+                            if (!tokens.has(0)) {
+                                throwException("Missing Token", 0);
+                            }
+                            if (match("]")) {
+                                return new Ast.Global(name, true, Optional.of(plcList));
+                            } else {
+                                throwException("Expecting Closing Bracket ]", 1);
+                            }
+                        } else {
+                            throwException("Expecting Opening Bracket [", 1);
+                        }
                     } else {
-                        throwException("Expecting Closing Bracket ]", 1);
+                        throwException("Expecting =", 1);
                     }
-                } else {
-                    throwException("Expecting Opening Bracket [", 1);
                 }
-            } else {
-                throwException("Expecting =", 1);
+                else {
+                    throwException("Expecting Identifier", 1);
+                }
+
             }
+            else {
+                throwException("Expecting :", 1);
+            }
+
         } else {
             throwException("Expecting Identifier", 1);
         }
@@ -161,6 +181,16 @@ public final class Parser {
         // Check whether an identifier follows the VAR
         if (match(Token.Type.IDENTIFIER)) {
             String name = tokens.get(-1).getLiteral();
+            // Check for the :
+            checkToken();
+            if (!match(":")) {
+                throwException("Expecting :", 0);
+            }
+            // Check for the identifier
+            checkToken();
+            if (!match(Token.Type.IDENTIFIER)) {
+                throwException("Expecting identifier", 0);
+            }
             // Check whether there is a = that follows
             if (match("=")) {
                 // Check that there is a token that comes after the =
@@ -188,23 +218,31 @@ public final class Parser {
     public Ast.Global parseImmutable() throws ParseException {
         tokens.advance();
         // Check whether there's a token after the VAL
-        if (!tokens.has(0)) {
-            throw new ParseException("Expecting Identifier", tokens.get(-1).getIndex() + tokens.get(-1).getLiteral().length());
-        }
+        checkToken();
         // Check whether the token after VAL is an Identifier
         if (match(Token.Type.IDENTIFIER)) {
             String name = tokens.get(-1).getLiteral();
-            // Check for the =
-            if (!tokens.has(0)) {
-                throw new ParseException("Missing =", tokens.get(-1).getIndex() + tokens.get(-1).getLiteral().length());
+            // Check for the :
+            checkToken();
+            if (!match(":")) {
+                throwException("Missing :", 0);
             }
+            // Check for the Identifier
+            checkToken();
+            if (!match(Token.Type.IDENTIFIER)) {
+                throwException("Expecting Identifier", 0);
+            }
+            String typeName = tokens.get(-1).getLiteral();
+            // Check for the =
+            checkToken();
             if (match("=")) {
                 // Check that the next token is an expression
                 if (!tokens.has(0)) {
                     throw new ParseException("Missing expression", tokens.get(-1).getIndex() + tokens.get(-1).getLiteral().length());
                 }
-                return new Ast.Global(name, false, Optional.of(parseExpression()));
-            } else {
+                return new Ast.Global(name, typeName,false, Optional.of(parseExpression()));
+            }
+            else {
                 throw new ParseException("Expecting =", tokens.get(0).getIndex());
             }
         } else {
