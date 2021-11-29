@@ -272,10 +272,12 @@ public final class Parser {
                 if (!tokens.has(0)) {
                     throw new ParseException("Missing Closing Parenthesis", tokens.get(-1).getIndex() + tokens.get(-1).getLiteral().length());
                 }
+                boolean type = false;
+                String returnType = "";
+                List<String> parameterTypes = new ArrayList<>();
                 // Check whether the next token is an identifier, otherwise it must be a ) since it's a function without parameters
                 if (match(Token.Type.IDENTIFIER)) {
                     // If it's an identifier, then make a while loop for , Identifier and store them all in a list of parameters
-                    // TODO: Ask the TA what the different b/w new ArrayList and Collections.EmptyList is
                     String parameter1 = tokens.get(-1).getLiteral();
                     parameterList.add(parameter1);
                     // Checking the : after the 2nd identifier
@@ -303,6 +305,17 @@ public final class Parser {
                         } else {
                             throw new ParseException("Identifier Expected", tokens.get(0).getIndex());
                         }
+                        // Check for the : identifier for the type
+                        checkToken();
+                        if (!match(":")) {
+                            throwException("Expecting :", 1);
+                        }
+                        checkToken();
+                        if (!match(Token.Type.IDENTIFIER)) {
+                            throwException("Expecting IDENTIFIER", 1);
+                        }
+                        String tempParameterType = tokens.get(-1).getLiteral();
+                        parameterTypes.add(tempParameterType);
                     }
                     // Check that there is a closing parenthesis
                     if (match(")")) {
@@ -313,32 +326,48 @@ public final class Parser {
                             if (match("END")) {
                                 // If it's empty list of statement, then create the Ast.Function using the name and parameters from earlier;
                                 List<Ast.Statement> statementList = new ArrayList<Ast.Statement>();
-                                List<String> statementsTypes = new ArrayList<String>();
-                                return new Ast.Function(functionName, statementsTypes, parameterList, typeName, statementList);
+                                return new Ast.Function(functionName, parameterTypes, parameterList, typeName, statementList);
                             }
                             // Else parse the statements
                             else {
                                 List<Ast.Statement> statementList = parseBlock();
-                                List<String> statementsTypes = new ArrayList<String>();
-                                return new Ast.Function(functionName, parameterList, statementList);
+                                return new Ast.Function(functionName, parameterTypes, parameterList, typeName, statementList);
                             }
                         } else {
                             throw new ParseException("Missing Do Keyword", tokens.get(-1).getIndex() + tokens.get(-1).getLiteral().length());
                         }
-                    } else {
+                    }
+                    else {
                         throw new ParseException("Missing Closing Parenthesis", tokens.get(-1).getIndex() + tokens.get(-1).getLiteral().length());
                     }
+                // Function with no Parameters
                 } else if (match(")")) {
+                    // if there is a colon, then there's a type
+                    if (match(":")) {
+                        checkToken();
+                        if (!match(Token.Type.IDENTIFIER)) {
+                            throwException("Expecting Identifier", 1);
+                        }
+                        returnType = tokens.get(-1).getLiteral();
+                        type = true;
+                    }
                     // If there is no identifier, then it's a no parameter function, check the DO keyword;
                     if (match("DO")) {
                         // Check if the next token is END which means it's an empty Block or if there is a block of statements there
                         if (match("END")) {
                             List<Ast.Statement> statementList = new ArrayList<Ast.Statement>();
                             // If the block is empty, then create the function Ast and return it
+                            // if type is true, then return with a type
+                            if (type) {
+                                return new Ast.Function(functionName, parameterList, parameterTypes, Optional.of(returnType), statementList);
+                            }
                             return new Ast.Function(functionName, parameterList, statementList);
                         } else {
                             // else parse the block into a statement list and then create the function ast and return it
                             List<Ast.Statement> statementList = parseBlock();
+                            if (type) {
+                                return new Ast.Function(functionName, parameterList, parameterTypes, Optional.of(returnType), statementList);
+                            }
                             return new Ast.Function(functionName, parameterList, statementList);
                         }
                     } else {
