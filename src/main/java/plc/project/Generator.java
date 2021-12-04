@@ -11,20 +11,24 @@ public final class Generator implements Ast.Visitor<Void> {
         this.writer = writer;
     }
 
+    // TODO: Remove the sout after writer.write before submitting!
     private void print(Object... objects) {
         for (Object object : objects) {
             if (object instanceof Ast) {
                 visit((Ast) object);
             } else {
                 writer.write(object.toString());
+                // System.out.print(object.toString());
             }
         }
     }
 
     private void newline(int indent) {
         writer.println();
+        // System.out.println();
         for (int i = 0; i < indent; i++) {
             writer.write("    ");
+            // System.out.print("    ");
         }
     }
 
@@ -56,7 +60,6 @@ public final class Generator implements Ast.Visitor<Void> {
         newline(--indent);
         newline(++indent);
 
-
         // Declare each of our functions -> methods
         // One of our functions -> methods is called main()!
         for (int i = 0; i < ast.getFunctions().size(); ++i) {
@@ -78,7 +81,7 @@ public final class Generator implements Ast.Visitor<Void> {
     @Override
     public Void visit(Ast.Global ast) {
         // Mutable
-        if (ast.getMutable() && ast.getName().equals("list")) {
+        if (ast.getValue().get() instanceof Ast.Expression.PlcList) {
             print(ast.getVariable().getType().getJvmName(), "[] ", ast.getName());
             if (ast.getValue().isPresent()) {
                 print(" = ", ast.getValue().get());
@@ -86,7 +89,7 @@ public final class Generator implements Ast.Visitor<Void> {
             print(";");
         }
         else if (ast.getMutable()) {
-            print(ast.getTypeName(), " ", ast.getName());
+            print(ast.getVariable().getType().getJvmName(), " ", ast.getName());
             // if value is present, then = value
             if (ast.getValue().isPresent()) {
                 print(" = ", ast.getValue().get());
@@ -95,7 +98,7 @@ public final class Generator implements Ast.Visitor<Void> {
         }
         // Immutable
         else {
-            print("final ", ast.getTypeName(), " ", ast.getName());
+            print("final ", ast.getVariable().getType().getJvmName(), " ", ast.getName());
             // if value is present, then = value
             if (ast.getValue().isPresent()) {
                 print(" = ", ast.getValue().get());
@@ -109,6 +112,7 @@ public final class Generator implements Ast.Visitor<Void> {
     public Void visit(Ast.Function ast) {
         print(ast.getFunction().getReturnType().getJvmName(), " ", ast.getFunction().getName(), "(");
         for (int i = 0; i < ast.getParameters().size(); ++i) {
+            print(ast.getFunction().getParameterTypes().get(i).getJvmName(), " ");
             print(ast.getParameters().get(i));
             // if not last parameter, print comma and space
             if (i < ast.getParameters().size() - 1) {
@@ -136,7 +140,6 @@ public final class Generator implements Ast.Visitor<Void> {
     }
 
     @Override
-    // TODO: Check that this is all that has to be done
     public Void visit(Ast.Statement.Expression ast) {
         // printing the expression found in ast followed by a semicolon
         print(ast.getExpression(), ";");
@@ -165,7 +168,6 @@ public final class Generator implements Ast.Visitor<Void> {
     }
 
     @Override
-    // TODO: Ask if we have to account for empty if statements
     public Void visit(Ast.Statement.If ast) {
         // printing if
         print("if (", ast.getCondition(), ") {");
@@ -269,7 +271,6 @@ public final class Generator implements Ast.Visitor<Void> {
     }
 
     @Override
-    // TODO: Check that this is all that has to be done
     public Void visit(Ast.Statement.Return ast) {
         // Printing return
         print("return ", ast.getValue(), ";");
@@ -277,7 +278,6 @@ public final class Generator implements Ast.Visitor<Void> {
     }
 
     @Override
-    // TODO: Check that this is all that has to be done
     public Void visit(Ast.Expression.Literal ast) {
         // Checking if the ast contains a string or a character, since those needs to be printed with "
         if (ast.getType().equals(Environment.Type.STRING)) {
@@ -298,27 +298,25 @@ public final class Generator implements Ast.Visitor<Void> {
     }
 
     @Override
-    // TODO: Check that this is all that has to be done
     public Void visit(Ast.Expression.Group ast) {
         print("(", ast.getExpression(), ")");
         return null;
     }
 
     @Override
-    // TODO: Ask if there are any other operator cases I have to worry about
     public Void visit(Ast.Expression.Binary ast) {
         // Check the Binary Operator
         switch (ast.getOperator()) {
-            case "AND":
+            case "&&":
                 // Generate the AST left expression
                 print(ast.getLeft());
                 print(" && ");
                 // Generate the AST right expression
                 print(ast.getRight());
                 break;
-            case "OR":
+            case "||":
                 print(ast.getLeft());
-                print(" | ");
+                print(" || ");
                 // Generate the AST right expression
                 print(ast.getRight());
                 break;
@@ -337,8 +335,10 @@ public final class Generator implements Ast.Visitor<Void> {
         if (ast.getOffset().isPresent()) {
             print(ast.getVariable().getJvmName(), "[", ast.getOffset().get(), "]");
         }
-        // else just print the JVM name of the variable stored in the AST
-        print (ast.getVariable().getJvmName());
+        else {
+            // else just print the JVM name of the variable stored in the AST
+            print (ast.getVariable().getJvmName());
+        }
         return null;
     }
 
@@ -359,9 +359,7 @@ public final class Generator implements Ast.Visitor<Void> {
         print(")");
         return null;
     }
-
     @Override
-    // TODO: Ask if this is all I have to do for PlcList
     public Void visit(Ast.Expression.PlcList ast) {
         // print brace
         print ("{");

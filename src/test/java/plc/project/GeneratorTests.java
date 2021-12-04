@@ -201,42 +201,33 @@ public class GeneratorTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void testBinaryExpression(String test, Ast.Expression.Binary ast, String expected) {
+    void testBinaryExpression(String test, Ast.Expression.Binary ast, String
+            expected) {
         test(ast, expected);
     }
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
     private static Stream<Arguments> testBinaryExpression() {
         return Stream.of(
                 Arguments.of("And",
-                        // TRUE AND FALSE
-                        init(new Ast.Expression.Binary("AND",
-                                init(new Ast.Expression.Literal(true), ast -> ast.setType(Environment.Type.BOOLEAN)),
-                                init(new Ast.Expression.Literal(false), ast -> ast.setType(Environment.Type.BOOLEAN))
+                        // TRUE && FALSE
+                        init(new Ast.Expression.Binary("&&",
+                                init(new Ast.Expression.Literal(true), ast ->
+                                        ast.setType(Environment.Type.BOOLEAN)),
+                                init(new Ast.Expression.Literal(false), ast ->
+                                        ast.setType(Environment.Type.BOOLEAN))
                         ), ast -> ast.setType(Environment.Type.BOOLEAN)),
                         "true && false"
                 ),
                 Arguments.of("Concatenation",
                         // "Ben" + 10
                         init(new Ast.Expression.Binary("+",
-                                init(new Ast.Expression.Literal("Ben"), ast -> ast.setType(Environment.Type.STRING)),
-                                init(new Ast.Expression.Literal(BigInteger.TEN), ast -> ast.setType(Environment.Type.INTEGER))
+                                init(new Ast.Expression.Literal("Ben"), ast ->
+                                        ast.setType(Environment.Type.STRING)),
+                                init(new Ast.Expression.Literal(BigInteger.TEN),
+                                        ast -> ast.setType(Environment.Type.INTEGER))
                         ), ast -> ast.setType(Environment.Type.STRING)),
                         "\"Ben\" + 10"
-                ),
-                Arguments.of("Addition",
-                        // 1 + 10
-                        init(new Ast.Expression.Binary("+",
-                                init(new Ast.Expression.Literal(1), ast -> ast.setType(Environment.Type.INTEGER)),
-                                init(new Ast.Expression.Literal(10), ast -> ast.setType(Environment.Type.INTEGER))
-                                ), ast -> ast.setType(Environment.Type.STRING)),
-                        "1 + 10"
-                ),
-                Arguments.of("Comparison",
-                        // 1.3 > 10.2
-                        init(new Ast.Expression.Binary(">",
-                                init(new Ast.Expression.Literal(1.3), ast -> ast.setType(Environment.Type.DECIMAL)),
-                                init(new Ast.Expression.Literal(10.2), ast -> ast.setType(Environment.Type.DECIMAL))
-                        ), ast -> ast.setType(Environment.Type.STRING)),
-                        "1.3 > 10.2"
                 )
         );
     }
