@@ -148,8 +148,7 @@ public final class Lexer {
         // looping through the stream to get to the end of the token
         return new Token(Token.Type.IDENTIFIER, currentString, startIndex);
     }
-
-    // TODO: Ask if I implemented the Final Submission Test Cases Properly
+    // DONE
     public Token lexNumber() {
         int startIndex = chars.index;
         boolean decimal = false;
@@ -211,25 +210,60 @@ public final class Lexer {
         }
         // return the correct token type based on decimal
         if (decimal) {
-            if (checkRange(2, number)) {
+            /*if (checkRange(2, number)) {
                 throw new ParseException("Number is out of range!", startIndex);
-            }
+            }*/
             return new Token(Token.Type.DECIMAL, number, startIndex);
         }
         else {
             // Checks whether the string is within range
-            if (checkRange(1, number)) {
+            /*if (checkRange(1, number)) {
                 throw new ParseException("Number is out of range!", startIndex);
-            }
+            }*/
             return new Token(Token.Type.INTEGER, number, startIndex);
         }
 
     }
-
+    // Done
     public Token lexCharacter() {
-        throw new UnsupportedOperationException(); //TODO
+        int startIndex = chars.index;
+        String character = String.valueOf(chars.get(0));
+        if (!chars.has(1)) {
+            throw new ParseException("Unterminated Character", chars.index);
+        }
+        chars.advance();
+        // check whether there is an escape character, if not then make sure the next char is '
+        if (chars.get(0) == '\\') {
+            character += chars.get(0);
+            lexEscape();
+            character += chars.get(0);
+        }
+        else {
+            // either the closing quote is here or in the next one, no more
+            if (chars.get(0) == '\'') {
+                throw new ParseException("Empty character", chars.index);
+            }
+            // throw exception if there's a newline
+            else if (chars.get(0) == '\n') {
+                throw new ParseException("Newline Prohibited", chars.index);
+            }
+            else {
+                character += chars.get(0);
+            }
+        }
+        if (!chars.has(1)) {
+            throw new ParseException("Unterminated Char", chars.index);
+        }
+        chars.advance();
+        // check that the last character is a single quote
+        if (!(chars.get(0) == '\'')) {
+            throw new ParseException("Unterminated Char", chars.index);
+        }
+        character += chars.get(0);
+        return new Token(Token.Type.CHARACTER, character, startIndex);
     }
 
+    // DONE
     public Token lexString() {
         boolean checkQuotes = false;
         int numQuotes = 0;
@@ -268,7 +302,7 @@ public final class Lexer {
         }
         return new Token(Token.Type.STRING, token, startIndex);
     }
-
+    // DONE
     public void lexEscape() {
         // Check that there is a character following the first escape \
         if (!chars.has(1)) {

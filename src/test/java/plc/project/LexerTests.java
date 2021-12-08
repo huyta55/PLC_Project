@@ -52,7 +52,7 @@ public class LexerTests {
                 Arguments.of("Leading Zero", "01", false),
                 Arguments.of("Multiple Digits Final", "123", true),
                 Arguments.of("Negative Final", "-1", true),
-                Arguments.of("Above Long Max", "123456789123456789123456789", false),
+                Arguments.of("Above Long Max", "123456789123456789123456789", true),
                 Arguments.of("Zero", "0", true)
         );
     }
@@ -76,7 +76,7 @@ public class LexerTests {
                 Arguments.of("No Number Decimal", "a.b", false),
                 Arguments.of("Single Digits Final", "1.0", true),
                 Arguments.of("Multiple Digits Final", "123.456", true),
-                Arguments.of("Above Integer Precision", "9007199254740993.0", false),
+                Arguments.of("Above Integer Precision", "9007199254740993.0", true),
                 Arguments.of("Trailing Zeros", "111.000", true)
         );
     }
@@ -105,7 +105,14 @@ public class LexerTests {
                 Arguments.of("Correct Escape \"", "\'\\\"\'", true),
                 Arguments.of("Correct Escape \\", "\'\\\\\'", true),
                 Arguments.of("Only \'", "\'\'\'", false),
-                Arguments.of("Multiple lines", "\'abc\ndef", false)
+                Arguments.of("Multiple lines", "\'abc\ndef", false),
+                //
+                Arguments.of("Digit", "\'1\'", true),
+                Arguments.of("Unicode", "\'ρ\'", true),
+                Arguments.of("Space", "\' \'", true),
+                Arguments.of("Single Quote Escape", "\'\\\'\'", true),
+                Arguments.of("Unterminated Newline", "\'\n\'", false),
+                Arguments.of("Unterminated Empty", "\'", false)
         );
     }
 
