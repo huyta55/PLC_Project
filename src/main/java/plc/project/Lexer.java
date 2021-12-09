@@ -67,20 +67,22 @@ public final class Lexer {
     }
     // TODO: Ask WTF is happening with the indexes
     List<Token> tokenList = new ArrayList<Token>();
-    private static final String operators = new String(new char[] {'/', '*', '>', '<', '(', ')', ';', '+', '=', '-'});
+    private static final String whiteSpace = new String(new char[] {'\n', '\b', '\r', '\t', ' '});
     /**
      * Repeatedly lexes the input using {@link #lexToken()}, also skipping over
      * whitespace where appropriate.
      */
     public List<Token> lex() {
+        int charLength = 0;
         while(chars.has(0)) {
-            char currentChar = chars.get(0);
-            if (Character.isWhitespace(currentChar)) {
+            // skip over white space
+            if (peek("[ \\\n\\\b\\\r\\\t]")) {
                 chars.advance();
-                continue;
+                chars.skip();
             }
-            tokenList.add(lexToken());
-            chars.advance();
+            else {
+                tokenList.add(lexToken());
+            }
         }
         return tokenList;
     }
@@ -109,17 +111,13 @@ public final class Lexer {
         else if ((currentChar == '-') || (Character.isDigit(currentChar))) {
             return lexNumber();
         }
-        // if it's an operator, then lex Operator
-        else if (operators.indexOf(currentChar) >= 0) {
-            return lexOperator();
-        }
         // If it's a letter without " or ', then lex Identifier
         else if (Character.isLetter(currentChar) || currentChar == '@') {
             return lexIdentifier();
         }
-        // else it's an invalid character that isn't accepted in our language
+        // else lex the operator
         else {
-            throw new ParseException("Invalid Token", chars.index);
+            return lexOperator();
         }
 
     }
@@ -136,12 +134,15 @@ public final class Lexer {
         }
         // while the token stream still has more characters, check that they match the requirements to be an identifier
         while (chars.has(1)) {
-            if (peek(String.valueOf(chars.get(0)), "[a-zA-Z0-9_-]")) {
-                chars.advance();
+            chars.advance();
+            if (peek("[a-zA-Z0-9_-]")) {
                 currentString += String.valueOf(chars.get(0));
             }
+            else if (match(" ")) {
+                return new Token(Token.Type.IDENTIFIER, currentString, startIndex);
+            }
             else {
-                throw new ParseException("Invalid Identifier", chars.index);
+                break;
             }
 
         }
@@ -203,7 +204,7 @@ public final class Lexer {
                     }
                 }
                 else {
-                    throw new ParseException("Not a digit!", chars.index);
+                    break;
                 }
             }
             number+= chars.get(0);
@@ -266,11 +267,9 @@ public final class Lexer {
     // DONE
     public Token lexString() {
         boolean checkQuotes = false;
-        int numQuotes = 0;
         int startIndex = chars.index;
         String token = "";
         // Check for the beginning quote
-        numQuotes++;
         // getting the " character
         token += String.valueOf(chars.get(0));
         // while there are more tokens, we check that they match the conditions of a string
@@ -300,6 +299,7 @@ public final class Lexer {
         if (!checkQuotes) {
             throw new ParseException("Unterminated", ++chars.index);
         }
+        chars.advance();
         return new Token(Token.Type.STRING, token, startIndex);
     }
     // DONE
@@ -317,7 +317,87 @@ public final class Lexer {
     }
 
     public Token lexOperator() {
-        throw new UnsupportedOperationException(); //TODO
+        String op = "";
+        int startIndex = chars.index;
+        // Lexing &
+        if (chars.get(0) == '&') {
+            op += chars.get(0);
+            // check that the char after is also a &
+            if (!chars.has(1)) {
+                throw new ParseException("Invalid &", chars.index);
+            }
+            chars.advance();
+            if (chars.get(0) == '&') {
+                op += chars.get(0);
+                return new Token(Token.Type.OPERATOR, op, startIndex);
+            }
+            else {
+                throw new ParseException("Invalid &", chars.index);
+            }
+        }
+        // lexing |
+        else if (chars.get(0) == '|') {
+            op += chars.get(0);
+            // check that the char after is also a &
+            if (!chars.has(1)) {
+                throw new ParseException("Invalid |", chars.index);
+            }
+            chars.advance();
+            if (chars.get(0) == '|') {
+                op += chars.get(0);
+                return new Token(Token.Type.OPERATOR, op, startIndex);
+            }
+            else {
+                throw new ParseException("Invalid |", chars.index);
+            }
+        }
+        // lexing !=
+        else if (chars.get(0) == '!') {
+            op += chars.get(0);
+            // check that the char after is also a &
+            if (!chars.has(1)) {
+                throw new ParseException("Invalid !=", chars.index);
+            }
+            chars.advance();
+            if (chars.get(0) == '=') {
+                op += chars.get(0);
+                chars.advance();
+                return new Token(Token.Type.OPERATOR, op, startIndex);
+            }
+            else {
+                throw new ParseException("Invalid !=", chars.index);
+            }
+        }
+        // lexing ==
+        else if (chars.get(0) == '=') {
+            op += chars.get(0);
+            // check that the char after is also a =
+            if ((!chars.has(1)) || (chars.get(1) == ' ')) {
+                // lex it as a single =
+                chars.advance();
+                return new Token(Token.Type.OPERATOR, op, startIndex);
+            }
+            chars.advance();
+            if (chars.get(0) == '=') {
+                op += chars.get(0);
+                chars.advance();
+                return new Token(Token.Type.OPERATOR, op, startIndex);
+            }
+            else {
+                throw new ParseException("Invalid ==", chars.index);
+            }
+        }
+        // check whitespace
+        else if (Character.isWhitespace(chars.get(0))) {
+            throw new ParseException("White Space is not a valid operator", chars.index);
+        }
+        // lexing all other single operators
+        else {
+            op += chars.get(0);
+            chars.advance();
+            return new Token(Token.Type.OPERATOR, op, startIndex);
+        }
+
     }
 
     /**
@@ -379,7 +459,6 @@ public final class Lexer {
             index++;
             length++;
         }
-
         public void skip() {
             length = 0;
         }

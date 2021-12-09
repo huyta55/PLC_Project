@@ -156,7 +156,16 @@ public class LexerTests {
                 Arguments.of("Character", "(", true),
                 Arguments.of("Comparison", "!=", true),
                 Arguments.of("Space", " ", false),
-                Arguments.of("Tab", "\t", false)
+                Arguments.of("Tab", "\t", false),
+                //
+                Arguments.of("Remainder", "%", true),
+                // Arguments.of("Unicode", "ρ", true),
+                Arguments.of("Equality", "==", true),
+                Arguments.of("Greater Than", ">", true),
+                Arguments.of("Not Equals", "!=", true),
+                Arguments.of("Plus", "+", true),
+                Arguments.of("Hyphen", "-", true),
+                Arguments.of("Form Feed", "\b", false)
         );
     }
 
