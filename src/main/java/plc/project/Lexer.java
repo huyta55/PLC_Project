@@ -108,11 +108,11 @@ public final class Lexer {
             return lexCharacter();
         }
         // if it's equal to "-", but the next character is a number, or if it's a number, then lex Number
-        else if ((currentChar == '-') || (Character.isDigit(currentChar))) {
+        else if (((currentChar == '-') && (chars.has(1)) && (!Character.isWhitespace(chars.get(1)))) || (Character.isDigit(currentChar))) {
             return lexNumber();
         }
         // If it's a letter without " or ', then lex Identifier
-        else if (Character.isLetter(currentChar) || currentChar == '@') {
+        else if (peek("[A-Za-z@]")) {
             return lexIdentifier();
         }
         // else lex the operator

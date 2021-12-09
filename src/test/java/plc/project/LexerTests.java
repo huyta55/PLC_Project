@@ -159,7 +159,7 @@ public class LexerTests {
                 Arguments.of("Tab", "\t", false),
                 //
                 Arguments.of("Remainder", "%", true),
-                // Arguments.of("Unicode", "ρ", true),
+                Arguments.of("Unicode", "ρ", true),
                 Arguments.of("Equality", "==", true),
                 Arguments.of("Greater Than", ">", true),
                 Arguments.of("Not Equals", "!=", true),
