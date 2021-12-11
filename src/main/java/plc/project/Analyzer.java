@@ -244,7 +244,7 @@ public final class Analyzer implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Expression.Literal ast) {
-        if (ast.getLiteral().equals(Environment.NIL)) {
+        if (ast.getLiteral() == null) {
            ast.setType(Environment.Type.NIL);
         }
         else if (ast.getLiteral() instanceof Boolean) {
@@ -320,17 +320,16 @@ public final class Analyzer implements Ast.Visitor<Void> {
         // < > == !=
         else if (ast.getOperator().equals(">") || ast.getOperator().equals("==") || ast.getOperator().equals("!=") || ast.getOperator().equals("<")) {
             // Check that both operands must be Comparable
-            if ((!ast.getLeft().getType().equals(Environment.Type.COMPARABLE)) || (!ast.getRight().getType().equals(Environment.Type.COMPARABLE))) {
-                // if either side is not a comparable, throw the exception
-                throw new RuntimeException("Both operands are not of type Comparable");
-            }
+            requireAssignable(Environment.Type.COMPARABLE, ast.getLeft().getType());
+            requireAssignable(ast.getLeft().getType(), ast.getRight().getType());
             // else all the conditions are met and the result is a Boolean
             ast.setType(Environment.Type.BOOLEAN);
         }
         // String concat or addition +
         else if (ast.getOperator().equals("+")) {
+
             // If either side of the binary operation is a String, then the result will be a String, and the other side can be anything
-            if (ast.getLeft().getType().equals(Environment.Type.STRING) || ast.getRight().getType().equals(Environment.Type.STRING)) {
+            if (ast.getLeft().getType() == Environment.Type.STRING || ast.getRight().getType() == Environment.Type.STRING) {
                 ast.setType(Environment.Type.STRING);
             }
             // Otherwise, LHS must be Integer/Decimal and Both the RHS and Result will match the type

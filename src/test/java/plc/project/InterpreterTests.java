@@ -10,6 +10,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -252,6 +253,38 @@ final class InterpreterTests {
 
         Assertions.assertEquals(new Character('n'), scope.lookupVariable("letter").getValue().getValue());
     }
+    @Test
+    void testFinalSwitchStatement() {
+        // SWITCH letter CASE 'y': print("yes"); letter = 'n'; DEFAULT: print("no"); END
+
+        Scope scope = new Scope(null);
+        scope.defineVariable("letter", true, Environment.create(new Character('a')));
+
+        List<Ast.Statement> statements = Arrays.asList(
+                new Ast.Statement.Expression(new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal("yes")))),
+                new Ast.Statement.Assignment(new Ast.Expression.Access(Optional.empty(), "letter"),
+                        new Ast.Expression.Literal(new Character('b')))
+        );
+
+        List<Ast.Statement.Case> cases = Arrays.asList(
+                new Ast.Statement.Case(Optional.of(new Ast.Expression.Literal(new Character('a'))), statements),
+                new Ast.Statement.Case(Optional.empty(), Arrays.asList(new Ast.Statement.Expression(new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal("no"))))))
+        );
+
+        Ast.Statement.Switch ast = new Ast.Statement.Switch(new Ast.Expression.Access(Optional.empty(), "letter"), cases);
+
+        PrintStream sysout = System.out;
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(out));
+        try {
+            test(ast, Environment.NIL.getValue(), scope);
+            Assertions.assertEquals("yes" + System.lineSeparator(), out.toString());
+        } finally {
+            System.setOut(sysout);
+        }
+
+        Assertions.assertEquals(new Character('a'), scope.lookupVariable("letter").getValue().getValue());
+    }
 
     @Test
     void testWhileStatement() {
@@ -337,14 +370,6 @@ final class InterpreterTests {
 
     private static Stream<Arguments> testBinaryExpression() {
         return Stream.of(
-                // TRUE && FALSE
-                Arguments.of("And",
-                        new Ast.Expression.Binary("&&",
-                                new Ast.Expression.Literal(true),
-                                new Ast.Expression.Literal(false)
-                        ),
-                        false
-                ),
                 // False && False
                 Arguments.of("False && False",
                         new Ast.Expression.Binary("&&",
@@ -385,14 +410,6 @@ final class InterpreterTests {
                         ),
                         null
                 ),
-                // 1 < 10
-                Arguments.of("Less Than",
-                        new Ast.Expression.Binary("<",
-                                new Ast.Expression.Literal(BigInteger.ONE),
-                                new Ast.Expression.Literal(BigInteger.TEN)
-                        ),
-                        true
-                ),
                 // 1 > 3
                 Arguments.of("Greater Than False",
                         new Ast.Expression.Binary(">",
@@ -417,22 +434,6 @@ final class InterpreterTests {
                         ),
                         true
                 ),
-                // 1 == 10
-                Arguments.of("Equal",
-                        new Ast.Expression.Binary("==",
-                                new Ast.Expression.Literal(BigInteger.ONE),
-                                new Ast.Expression.Literal(BigInteger.TEN)
-                        ),
-                        false
-                ),
-                // 1 != 10
-                Arguments.of("not Equal",
-                        new Ast.Expression.Binary("!=",
-                                new Ast.Expression.Literal(BigInteger.ONE),
-                                new Ast.Expression.Literal(BigInteger.TEN)
-                        ),
-                        true
-                ),
                 // 10 != 10
                 Arguments.of("not Equal False",
                         new Ast.Expression.Binary("!=",
@@ -441,37 +442,13 @@ final class InterpreterTests {
                         ),
                         false
                 ),
-                // "a" + "b"
-                Arguments.of("Concatenation",
-                        new Ast.Expression.Binary("+",
-                                new Ast.Expression.Literal("a"),
-                                new Ast.Expression.Literal("b")
-                        ),
-                        "ab"
-                ),
                 // "a" + 1
                 Arguments.of("String + BigInteger",
                         new Ast.Expression.Binary("+",
                                 new Ast.Expression.Literal("a"),
                                 new Ast.Expression.Literal(BigInteger.ONE)
                         ),
-                        null
-                ),
-                // 1 + 10
-                Arguments.of("Addition",
-                        new Ast.Expression.Binary("+",
-                                new Ast.Expression.Literal(BigInteger.ONE),
-                                new Ast.Expression.Literal(BigInteger.TEN)
-                        ),
-                        BigInteger.valueOf(11)
-                ),
-                // 1 - 3
-                Arguments.of("Subtraction 1 - 3",
-                        new Ast.Expression.Binary("-",
-                                new Ast.Expression.Literal(BigInteger.ONE),
-                                new Ast.Expression.Literal(BigInteger.valueOf(3))
-                        ),
-                        BigInteger.valueOf(-2)
+                        "a1"
                 ),
                 // -2 * -5
                 Arguments.of("Multiply -2 * -5",
@@ -481,71 +458,255 @@ final class InterpreterTests {
                         ),
                         BigInteger.valueOf(10)
                 ),
-                // -2.0 * 4.4
-                Arguments.of("Multiply -2.0 * 4.4",
-                        new Ast.Expression.Binary("*",
-                                new Ast.Expression.Literal(new BigDecimal(-2.0)),
-                                new Ast.Expression.Literal(new BigDecimal(4.4))
-                        ),
-                        new BigDecimal(-2.0 * 4.4)
-                ),
                 // 1 / 3.4
-                Arguments.of("Invalid Division",
+                Arguments.of("Invalid Division: Different Types",
                         new Ast.Expression.Binary("/",
                                 new Ast.Expression.Literal(BigInteger.valueOf(1)),
                                 new Ast.Expression.Literal(new BigDecimal("3.4"))
                         ),
                         null
                 ),
+                // 8 ^ -3
+                Arguments.of("Negative Exponent Int",
+                        new Ast.Expression.Binary("^",
+                                new Ast.Expression.Literal(BigInteger.valueOf(8)),
+                                new Ast.Expression.Literal(BigInteger.valueOf(-3))
+                        ),
+                        BigDecimal.valueOf(1.0/(8 * 8 * 8))
+                ),
+                //
+                // FINAL
+                // Logical
+                Arguments.of("And Final",
+                        new Ast.Expression.Binary("&&",
+                                new Ast.Expression.Literal(true),
+                                new Ast.Expression.Literal(false)
+                        ),
+                        false
+                ),
+                Arguments.of("Or Final",
+                        new Ast.Expression.Binary("||",
+                                new Ast.Expression.Literal(true),
+                                new Ast.Expression.Literal(false)
+                        ),
+                        true
+                ),
+                // TODO: Ask about this test case
+                Arguments.of("And(Short Circuit) Final",
+                        new Ast.Expression.Binary("&&",
+                                new Ast.Expression.Literal(true),
+                                new Ast.Expression.Access(Optional.empty(), "undefined")
+                        ),
+                        false
+                ),
+                Arguments.of("Invalid Type Final",
+                        new Ast.Expression.Binary("||",
+                                new Ast.Expression.Literal(false),
+                                new Ast.Expression.Literal(0)
+                        ),
+                        null
+                ),
+                // Comparison
+                // 1 < 10
+                Arguments.of("Less Than Final",
+                        new Ast.Expression.Binary("<",
+                                new Ast.Expression.Literal(BigInteger.ONE),
+                                new Ast.Expression.Literal(BigInteger.TEN)
+                        ),
+                        true
+                ),
+                // 1 > 10
+                Arguments.of("Greater Than Final",
+                        new Ast.Expression.Binary(">",
+                                new Ast.Expression.Literal(BigInteger.ONE),
+                                new Ast.Expression.Literal(BigInteger.TEN)
+                        ),
+                        false
+                ),
+                // "abc" > "abd"
+                Arguments.of("String Comparison Final",
+                        new Ast.Expression.Binary(">",
+                                new Ast.Expression.Literal("abc"),
+                                new Ast.Expression.Literal("abd")
+                        ),
+                        false
+                ),
+                // 1 < 1.0
+                Arguments.of("Mixed Comparables",
+                        new Ast.Expression.Binary("<",
+                                new Ast.Expression.Literal(BigInteger.ONE),
+                                new Ast.Expression.Literal(BigDecimal.valueOf(1.0))
+                        ),
+                        null
+                ),
+                // Equality
+                // 1 == 10
+                Arguments.of("Equal Final",
+                        new Ast.Expression.Binary("==",
+                                new Ast.Expression.Literal(BigInteger.ONE),
+                                new Ast.Expression.Literal(BigInteger.TEN)
+                        ),
+                        false
+                ),
+                // 1 != 10
+                Arguments.of("not Equal Final",
+                        new Ast.Expression.Binary("!=",
+                                new Ast.Expression.Literal(BigInteger.ONE),
+                                new Ast.Expression.Literal(BigInteger.TEN)
+                        ),
+                        true
+                ),
+                // NIL == NIL
+                Arguments.of("NIL Equals Final",
+                        new Ast.Expression.Binary("==",
+                                new Ast.Expression.Literal(null),
+                                new Ast.Expression.Literal(null)
+                        ),
+                        true
+                ),
+                // TODO: Ask about this case
+                Arguments.of("Distinct Types Final",
+                        new Ast.Expression.Binary("!=",
+                                new Ast.Expression.Literal(BigInteger.ONE),
+                                new Ast.Expression.Literal("1")
+                        ),
+                        true
+                ),
+                // PLUS
+                // 1 + "10"
+                Arguments.of("Plus RHS String Final",
+                        new Ast.Expression.Binary("+",
+                                new Ast.Expression.Literal(BigInteger.ONE),
+                                new Ast.Expression.Literal("10")
+                        ),
+                        "110"
+                ),
+                // 1 + 10
+                Arguments.of("Addition Final",
+                        new Ast.Expression.Binary("+",
+                                new Ast.Expression.Literal(BigInteger.ONE),
+                                new Ast.Expression.Literal(BigInteger.TEN)
+                        ),
+                        BigInteger.valueOf(11)
+                ),
+                // "a" + "b"
+                Arguments.of("Concatenation Final",
+                        new Ast.Expression.Binary("+",
+                                new Ast.Expression.Literal("a"),
+                                new Ast.Expression.Literal("b")
+                        ),
+                        "ab"
+                ),
+                // 1 + 10.0
+                Arguments.of("Plus Mixed Types Final",
+                        new Ast.Expression.Binary("+",
+                                new Ast.Expression.Literal(BigInteger.ONE),
+                                new Ast.Expression.Literal(BigDecimal.valueOf(10.0))
+                        ),
+                        null
+                ),
+                // MINUS/TIMES
+                // 1 - 10
+                Arguments.of("Subtraction 1 - 10 Final",
+                        new Ast.Expression.Binary("-",
+                                new Ast.Expression.Literal(BigInteger.ONE),
+                                new Ast.Expression.Literal(BigInteger.valueOf(10))
+                        ),
+                        BigInteger.valueOf(-9)
+                ),
+                // 1.2 * 3.4
+                Arguments.of("Multiplication Final",
+                        new Ast.Expression.Binary("*",
+                                new Ast.Expression.Literal(BigDecimal.valueOf(1.2)),
+                                new Ast.Expression.Literal(BigDecimal.valueOf(3.4))
+                        ),
+                        BigDecimal.valueOf(1.2).multiply(BigDecimal.valueOf(3.4))
+                ),
+                Arguments.of("Multiplication Mixed Types Final",
+                        new Ast.Expression.Binary("*",
+                                new Ast.Expression.Literal(BigDecimal.valueOf(1.2)),
+                                new Ast.Expression.Literal(BigInteger.valueOf(3))
+                        ),
+                        null
+                ),
+                Arguments.of("Invalid Types Final",
+                        new Ast.Expression.Binary("-",
+                                new Ast.Expression.Literal(BigInteger.valueOf(1)),
+                                new Ast.Expression.Literal("string")
+                        ),
+                        null
+                ),
+                // DIVIDE
+                // 8 / 3
+                Arguments.of("Integer Division Final",
+                        new Ast.Expression.Binary("/",
+                                new Ast.Expression.Literal(BigInteger.valueOf(8)),
+                                new Ast.Expression.Literal(BigInteger.valueOf(3))
+                        ),
+                        BigInteger.valueOf(2)
+                ),
                 // 1.2 / 3.4
-                Arguments.of("Division",
+                Arguments.of("Decimal Division Final",
                         new Ast.Expression.Binary("/",
                                 new Ast.Expression.Literal(new BigDecimal("1.2")),
                                 new Ast.Expression.Literal(new BigDecimal("3.4"))
                         ),
                         new BigDecimal("0.4")
                 ),
-                // 2 ^ 3
-                Arguments.of("Exponent Int",
-                        new Ast.Expression.Binary("^",
-                            new Ast.Expression.Literal(BigInteger.valueOf(2)),
-                            new Ast.Expression.Literal(BigInteger.valueOf(3))
+                Arguments.of("Divide by Zero Final",
+                        new Ast.Expression.Binary("/",
+                                new Ast.Expression.Literal(BigInteger.valueOf(1)),
+                                new Ast.Expression.Literal(BigInteger.valueOf(0))
                         ),
-                        BigInteger.valueOf(8)
+                        null
                 ),
-                // -2 ^ 3
-                Arguments.of("Exponent Int Negative",
+                Arguments.of("Rounding Mode Final",
+                        new Ast.Expression.Binary("/",
+                                new Ast.Expression.Literal(new BigDecimal("2.5")),
+                                new Ast.Expression.Literal(new BigDecimal("10.0"))
+                        ),
+                        BigDecimal.valueOf(2.5).divide(BigDecimal.valueOf(10.0), RoundingMode.HALF_EVEN)
+                ),
+                // EXPONENT
+                // 8 ^ 3
+                Arguments.of(" Exponent BigInt LHS Final",
                         new Ast.Expression.Binary("^",
-                                new Ast.Expression.Literal(BigInteger.valueOf(-2)),
+                                new Ast.Expression.Literal(BigInteger.valueOf(8)),
                                 new Ast.Expression.Literal(BigInteger.valueOf(3))
                         ),
-                        BigInteger.valueOf(-8)
+                        BigInteger.valueOf(8 * 8 * 8)
                 ),
-                // -2.2 ^ 3
-                Arguments.of("Exponent Decimal",
+                // 8.0 ^ 3
+                Arguments.of("Exponent BigDecimal LHS Final",
                         new Ast.Expression.Binary("^",
-                            new Ast.Expression.Literal(new BigDecimal(-2.2)),
-                            new Ast.Expression.Literal(BigInteger.valueOf(3))
+                                new Ast.Expression.Literal(BigDecimal.valueOf(8.0)),
+                                new Ast.Expression.Literal(BigInteger.valueOf(3))
                         ),
-                        BigDecimal.valueOf(-10.648)
-
+                        BigDecimal.valueOf(8.0).multiply((BigDecimal.valueOf(8.0).multiply(BigDecimal.valueOf(8.0))))
                 ),
-                // 2 ^ -3
-                Arguments.of("Negative Exponent Int",
+                // 8.0 ^ -3
+                Arguments.of("Exponent Negative RHS Final",
                         new Ast.Expression.Binary("^",
-                                new Ast.Expression.Literal(BigInteger.valueOf(2)),
+                                new Ast.Expression.Literal(BigDecimal.valueOf(8.0)),
                                 new Ast.Expression.Literal(BigInteger.valueOf(-3))
                         ),
-                        BigDecimal.valueOf(1.0/8.0)
+                        BigDecimal.valueOf(1.0/(8.0 * 8.0 * 8.0))
                 ),
-                // -2.3 ^ -2
-                Arguments.of("Negative Exponent Int",
+                Arguments.of("Exponent Invalid RHS Final",
                         new Ast.Expression.Binary("^",
-                                new Ast.Expression.Literal(BigDecimal.valueOf(-2.2)),
-                                new Ast.Expression.Literal(BigInteger.valueOf(-2))
+                                new Ast.Expression.Literal(BigInteger.valueOf(2)),
+                                new Ast.Expression.Literal(BigDecimal.valueOf(1.7))
                         ),
-                        BigDecimal.valueOf(1.0/4.84)
+                        null
                 )
+                // TODO: Ask about this case
+                /*Arguments.of("Exponent Huge LHS Final",
+                        new Ast.Expression.Binary("^",
+                                new Ast.Expression.Literal(2147483648),
+                                new Ast.Expression.Literal(BigInteger.valueOf(-3))
+                        ),
+                        BigDecimal.valueOf(1.0/(8.0 * 8.0 * 8.0))
+                ),*/
         );
     }
 
@@ -565,7 +726,6 @@ final class InterpreterTests {
                         new Ast.Expression.Access(Optional.empty(), "variable"),
                         "variable"
                 )
-
                 // list[1]
         );
     }
@@ -599,7 +759,7 @@ final class InterpreterTests {
                 // Log(1)
                 Arguments.of("Log(1)",
                         new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(new BigDecimal(1)))),
-                        Environment.NIL.getValue()
+                        BigDecimal.valueOf(0.0)
                 ),
                 // print("Hello, World!")
                 Arguments.of("Print",

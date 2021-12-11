@@ -54,6 +54,29 @@ public class GeneratorTests {
                                 "    }",
                                 "",
                                 "}"
+                        ),
+                        new Ast.Source(
+                                Arrays.asList(),
+                                Arrays.asList(init(new Ast.Function("main", Arrays.asList(), Arrays.asList(), Optional.of("Integer"), Arrays.asList(
+                                        new Ast.Statement.Expression(init(new Ast.Expression.Function("print", Arrays.asList(
+                                                init(new Ast.Expression.Literal("Hello, World!"), ast -> ast.setType(Environment.Type.STRING))
+                                        )), ast -> ast.setFunction(new Environment.Function("print", "System.out.println", Arrays.asList(Environment.Type.ANY), Environment.Type.NIL, args -> Environment.NIL)))),
+                                        new Ast.Statement.Return(init(new Ast.Expression.Literal(BigInteger.ZERO), ast -> ast.setType(Environment.Type.INTEGER)))
+                                )), ast -> ast.setFunction(new Environment.Function("main", "main", Arrays.asList(), Environment.Type.INTEGER, args -> Environment.NIL))))
+                        ),
+                        String.join(System.lineSeparator(),
+                                "public class Main {",
+                                "",
+                                "    public static void main(String[] args) {",
+                                "        System.exit(new Main().main());",
+                                "    }",
+                                "",
+                                "    int main() {",
+                                "        System.out.println(\"Hello, World!\");",
+                                "        return 0;",
+                                "    }",
+                                "",
+                                "}"
                         )
                 )
         );
@@ -73,6 +96,14 @@ public class GeneratorTests {
         Ast.Global astList = init(global, ast -> ast.setVariable(new Environment.Variable("list", "list", Environment.Type.DECIMAL, true, Environment.create(Arrays.asList(new Double(1.0), new Double(1.5), new Double(2.0))))));
 
         String expected = new String("double[] list = {1.0, 1.5, 2.0};");
+        test(astList, expected);
+    }
+
+    @Test
+    void testGlobal() {
+        Ast.Global global = new Ast.Global("str", "String", true, Optional.empty());
+        Ast.Global astList = init(global, ast -> ast.setVariable(new Environment.Variable("str", "str", Environment.Type.STRING, true, Environment.create(Environment.NIL))));
+        String expected = new String("String str;");
         test(astList, expected);
     }
 

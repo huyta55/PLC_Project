@@ -18,21 +18,22 @@ public final class Generator implements Ast.Visitor<Void> {
                 visit((Ast) object);
             } else {
                 writer.write(object.toString());
-                // System.out.print(object.toString());
+                System.out.print(object.toString());
             }
         }
     }
 
     private void newline(int indent) {
         writer.println();
-        // System.out.println();
+        System.out.println();
         for (int i = 0; i < indent; i++) {
             writer.write("    ");
-            // System.out.print("    ");
+            System.out.print("    ");
         }
     }
 
     @Override
+    // TODO: Check that the spacing betwene each thing is proper
     public Void visit(Ast.Source ast) {
         // create a "class Main {"
         print("public class Main {");
@@ -71,6 +72,7 @@ public final class Generator implements Ast.Visitor<Void> {
                 newline(--indent);
             }
         }
+        // TODO: if function doesn't have any statements, then there shouldn't be a newline that separates the }
         newline(indent);
         // print "}" to close the class Main
         print ("}");
@@ -81,7 +83,7 @@ public final class Generator implements Ast.Visitor<Void> {
     @Override
     public Void visit(Ast.Global ast) {
         // Mutable
-        if (ast.getValue().get() instanceof Ast.Expression.PlcList) {
+        if ((ast.getValue().isPresent()) && (ast.getValue().get() instanceof Ast.Expression.PlcList)) {
             print(ast.getVariable().getType().getJvmName(), "[] ", ast.getName());
             if (ast.getValue().isPresent()) {
                 print(" = ", ast.getValue().get());

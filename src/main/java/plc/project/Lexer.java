@@ -1,7 +1,5 @@
 package plc.project;
 
-import com.sun.org.apache.xalan.internal.xsltc.runtime.Operators;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -73,10 +71,9 @@ public final class Lexer {
      * whitespace where appropriate.
      */
     public List<Token> lex() {
-        int charLength = 0;
         while(chars.has(0)) {
             // skip over white space
-            if (peek("[ \\\n\\\b\\\r\\\t]")) {
+            if (peek("[ \n\b\r\t]")) {
                 chars.advance();
                 chars.skip();
             }
@@ -119,7 +116,6 @@ public final class Lexer {
         else {
             return lexOperator();
         }
-
     }
     // DONE
     public Token lexIdentifier() {
@@ -132,11 +128,12 @@ public final class Lexer {
             // if it's any of these, throw a parse exception
             throw new ParseException("Invalid Identifier", chars.index);
         }
+        chars.advance();
         // while the token stream still has more characters, check that they match the requirements to be an identifier
-        while (chars.has(1)) {
-            chars.advance();
+        while (chars.has(0)) {
             if (peek("[a-zA-Z0-9_-]")) {
                 currentString += String.valueOf(chars.get(0));
+                chars.advance();
             }
             else if (match(" ")) {
                 return new Token(Token.Type.IDENTIFIER, currentString, startIndex);
@@ -144,7 +141,6 @@ public final class Lexer {
             else {
                 break;
             }
-
         }
         // looping through the stream to get to the end of the token
         return new Token(Token.Type.IDENTIFIER, currentString, startIndex);

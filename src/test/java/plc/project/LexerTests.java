@@ -6,11 +6,14 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
 public class LexerTests {
+
+    // TODO: Ask about where the indexes should be for unterminated tokens
 
     @ParameterizedTest
     @MethodSource
@@ -35,6 +38,18 @@ public class LexerTests {
                 Arguments.of("Capitals", "ABC", true),
                 Arguments.of("Short Identifier", "a", true),
                 Arguments.of("Long Identifier", "abcdefghijklmnopqrstuvwxyz012346789_-", true)
+        );
+    }
+    @ParameterizedTest
+    @MethodSource
+    void testIdentifierList(String test, String input, boolean success, List<Token> expected) {
+        test(input, expected, success);
+    }
+
+    private static Stream<Arguments> testIdentifierList() {
+        return Stream.of(
+                Arguments.of("Alphabetic", "getName", true, Arrays.asList(new Token(Token.Type.IDENTIFIER, "getName", 0))),
+                Arguments.of("Alphanumeric", "thelegend27", true, Arrays.asList(new Token(Token.Type.IDENTIFIER, "thelegend27", 0)))
         );
     }
 

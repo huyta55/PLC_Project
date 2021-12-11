@@ -7,10 +7,17 @@ import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
+// TODO: Statement.Switch: Default
+// TODO: Statement.Switch: Default Only
+// TODO: Statement.If: Function Condition
+// TODO: Statement.Assignment: Immutable
+// TODO: Statement.Expression: Addition
+// TODO: Statement.Declaration: Function Value
 public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     private Scope scope = new Scope(null);
 
+    // TODO: Ask about the switch log tests
     public Interpreter(Scope parent) {
         scope = new Scope(parent);
         scope.defineFunction("print", 1, args -> {
@@ -60,24 +67,9 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     public Environment.PlcObject visit(Ast.Global ast) {
         // Grabbing the optional value to see whether there is something assigned to the variable or if it's just a declaration
-        Optional optional = ast.getValue();
-        if (optional.isPresent()) {
-            if (optional.get() instanceof Ast.Expression.PlcList) {
-                // If the optional is of type plcList, then it's a list, and we initialize a list instead of a variable
-                List<Ast.Expression> expressionList = ((Ast.Expression.PlcList) optional.get()).getValues();
-                // for loop to iterate through each literal in the list and add to resultList;
-                List<Object> resultList = new ArrayList<>();
-                for (int i = 0; i < expressionList.size(); ++i) {
-                    resultList.add(visit(expressionList.get(i)).getValue());
-                }
-                System.out.println();
-                scope.defineVariable(ast.getName(), ast.getMutable(), Environment.create(resultList));
-            }
-            else {
-                // If the optional has a value and isn't a plcList, that means there is something assigned to the variable
-                Object value = visit((Ast.Expression.Literal) optional.get()).getValue();
-                scope.defineVariable(ast.getName(), ast.getMutable(), Environment.create(value));
-            }
+
+        if (ast.getValue().isPresent()) {
+            scope.defineVariable(ast.getName(), ast.getMutable(), visit(ast.getValue().get()));
         }
         else {
             // If optional is empty, the variable is merely being declared
@@ -89,9 +81,11 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     @Override
     public Environment.PlcObject visit(Ast.Function ast) {
         // TIPS: use the args ->
+        Scope tempScope = scope;
         scope.defineFunction(ast.getName(), ast.getParameters().size(), args -> {
+            Scope tempScope2 = scope;
             try {
-                scope = new Scope(scope);
+                scope = new Scope(tempScope);
                 for(int i = 0; i < args.size(); i++) { // define arguments
                     scope.defineVariable(ast.getParameters().get(i), true, args.get(i));
                 }
@@ -104,7 +98,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
             }
             finally {
                 //restore scope
-                scope = scope.getParent();
+                scope = tempScope2;
             }
             return Environment.NIL;
         });
@@ -189,7 +183,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     }
 
     @Override
-    // TODO: Ask if I am using visit case correctly
+    // TODO: Ask about the no value thing
     public Environment.PlcObject visit(Ast.Statement.Switch ast) {
         scope = new Scope(scope);
         List<Ast.Statement.Case> cases = ast.getCases();
@@ -223,7 +217,6 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     public Environment.PlcObject visit(Ast.Statement.Case ast) {
         return visit(ast.getValue().get());
     }
-
     @Override
     public Environment.PlcObject visit(Ast.Statement.While ast) {
         // throw new UnsupportedOperationException(); //TODO (in lecture)
@@ -243,7 +236,6 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     public Environment.PlcObject visit(Ast.Statement.Return ast) {
         throw new Return(visit(ast.getValue()));
     }
-
     @Override
     // Literal = Done
     public Environment.PlcObject visit(Ast.Expression.Literal ast) {
@@ -263,7 +255,6 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     }
 
     @Override
-    // TODO: Check the Rounding for Multiplication and Exponents
     public Environment.PlcObject visit(Ast.Expression.Binary ast) {
         String astOP = ast.getOperator();
         // Evaluating for && and ||
@@ -352,8 +343,8 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
         else if (astOP.equals("+")) {
             if ((visit(ast.getLeft()).getValue() instanceof String) || (visit(ast.getRight()).getValue() instanceof String)) {
                 // if either side is a string then it's concat operation
-                String LHS = requireType(String.class, visit(ast.getLeft()));
-                String RHS = requireType(LHS.getClass(), visit(ast.getRight()));
+                String LHS = visit(ast.getLeft()).getValue().toString();
+                String RHS = visit(ast.getRight()).getValue().toString();
                 String result = LHS.concat(RHS);
                 return Environment.create(result);
             }
@@ -423,7 +414,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
                 return Environment.create(result);
             }
             else if (visit(ast.getLeft()).getValue() instanceof BigInteger) {
-                BigInteger LHS = requireType(BigInteger.class, visit(ast.getRight()));
+                BigInteger LHS = requireType(BigInteger.class, visit(ast.getLeft()));
                 BigInteger RHS = requireType(LHS.getClass(), visit(ast.getRight()));
                 if (RHS.signum() == 0) {
                     throw new RuntimeException("Denominator cannot be zero!");
@@ -522,15 +513,13 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     }
 
     @Override
-    // TODO: Ask if the function print is actually supposed to print out
-    // TODO: Ask about the different potential functions we have to account for
     public Environment.PlcObject visit(Ast.Expression.Function ast) {
         Environment.Function function = scope.lookupFunction(ast.getName(), ast.getArguments().size());
         List<Ast.Expression> args = ast.getArguments();
         List<Environment.PlcObject> argsObject = new ArrayList<>();
         // If the function doesn't have any arguments, just return the name of the function
         if (function.getArity() == 0) {
-            return Environment.create(function.getName());
+            return function.invoke(argsObject);
         }
         // else evaluate the arguments
         else {
@@ -538,10 +527,9 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
                 // Converting the args from Ast.Expressions to PlcObject by visiting and then adding to argsObject list
                 argsObject.add(visit(args.get(i)));
             }
-            // Invoking the list of object arguments
-            function.invoke(argsObject);
         }
-        return Environment.NIL;
+        // Invoking the list of object arguments
+        return function.invoke(argsObject);
     }
 
     @Override
