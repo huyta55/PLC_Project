@@ -23,7 +23,6 @@ public final class Parser {
     // TODO: Fix Statement Declaration
     // TODO: Fix If Statement
 
-
     private final TokenStream tokens;
     public Parser(List<Token> tokens) {
         this.tokens = new TokenStream(tokens);
@@ -538,11 +537,9 @@ public final class Parser {
         parseDo();
 
         List<Ast.Statement> statements = parseBlock();
-        Token BackTrace = tokens.get(0);
-        List<Ast.Statement> elseStatements = new ArrayList<>();
 
-        if (BackTrace.getLiteral() == "ELSE") {
-            tokens.advance();
+        List<Ast.Statement> elseStatements = new ArrayList<>();
+        if (match("ELSE")) {
             elseStatements = parseBlock();
             parseDone();
             return new Ast.Statement.If(expr, statements, elseStatements);
@@ -621,12 +618,10 @@ public final class Parser {
      * {@code RETURN}.
      */
     public Ast.Statement.Return parseReturnStatement() throws ParseException {
-        // throw new UnsupportedOperationException(); //TODO
 
         tokens.advance();
         Ast.Expression return_exp = parseExpression();
 
-        Token tmp = tokens.get(0);
         parseSemicolon();
         return new Ast.Statement.Return(return_exp);
     }

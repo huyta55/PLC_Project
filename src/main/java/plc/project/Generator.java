@@ -33,7 +33,7 @@ public final class Generator implements Ast.Visitor<Void> {
     }
 
     @Override
-    // TODO: Check that the spacing betwene each thing is proper
+    // TODO: Check that the spacing between each thing is proper
     public Void visit(Ast.Source ast) {
         // create a "class Main {"
         print("public class Main {");

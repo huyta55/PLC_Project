@@ -219,7 +219,7 @@ final class ParserTests {
 
     private static Stream<Arguments> testIfStatement() {
         return Stream.of(
-                Arguments.of("If",
+                Arguments.of("If Modified Final",
                         Arrays.asList(
                                 //IF expr DO stmt; END
                                 new Token(Token.Type.IDENTIFIER, "IF", 0),
@@ -235,7 +235,7 @@ final class ParserTests {
                                 Arrays.asList()
                         )
                 ),
-                Arguments.of("Else",
+                Arguments.of("Else Modified Final",
                         Arrays.asList(
                                 //IF expr DO stmt1; ELSE stmt2; END
                                 new Token(Token.Type.IDENTIFIER, "IF", 0),
@@ -253,6 +253,62 @@ final class ParserTests {
                                 Arrays.asList(new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt1"))),
                                 Arrays.asList(new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt2")))
                         )
+                ),
+                Arguments.of("Multiple If Statements Modified Final",
+                        Arrays.asList(
+                                // IF expr DO stmt1; stmt2; stmt3; END
+                                new Token(Token.Type.IDENTIFIER, "IF", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr", 3),
+                                new Token(Token.Type.IDENTIFIER, "DO", 8),
+                                new Token(Token.Type.IDENTIFIER, "stmt1", 11),
+                                new Token(Token.Type.OPERATOR, ";", 16),
+                                new Token(Token.Type.IDENTIFIER, "stmt2", 18),
+                                new Token(Token.Type.OPERATOR, ";", 23),
+                                new Token(Token.Type.IDENTIFIER, "stmt3", 25),
+                                new Token(Token.Type.OPERATOR, ";", 30),
+                                new Token(Token.Type.IDENTIFIER, "END", 32)
+                        ),
+                        new Ast.Statement.If(
+                                new Ast.Expression.Access(Optional.empty(), "expr"),
+                                Arrays.asList(new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt1")), new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt2")), new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt3"))),
+                                Arrays.asList()
+                        )
+                ),
+                Arguments.of("If No Statements Modified Final",
+                        Arrays.asList(
+                                //IF expr DO stmt; END
+                                new Token(Token.Type.IDENTIFIER, "IF", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr", 3),
+                                new Token(Token.Type.IDENTIFIER, "DO", 8),
+                                new Token(Token.Type.IDENTIFIER, "END", 11)
+                        ),
+                        new Ast.Statement.If(
+                                new Ast.Expression.Access(Optional.empty(), "expr"),
+                                Arrays.asList(),
+                                Arrays.asList()
+                        )
+                ),
+                Arguments.of("If Missing Do Modified Final",
+                        Arrays.asList(
+                                //IF expr DO stmt; END
+                                new Token(Token.Type.IDENTIFIER, "IF", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr", 3),
+                                new Token(Token.Type.IDENTIFIER, "stmt", 8),
+                                new Token(Token.Type.OPERATOR, ";", 13),
+                                new Token(Token.Type.IDENTIFIER, "END", 15)
+                        ),
+                        null
+                ),
+                Arguments.of("If Missing End Modified Final",
+                        Arrays.asList(
+                                //IF expr DO stmt; END
+                                new Token(Token.Type.IDENTIFIER, "IF", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr", 3),
+                                new Token(Token.Type.IDENTIFIER, "DO", 8),
+                                new Token(Token.Type.IDENTIFIER, "stmt", 11),
+                                new Token(Token.Type.OPERATOR, ";", 15)
+                        ),
+                        null
                 )
         );
     }
@@ -288,10 +344,10 @@ final class ParserTests {
     void testReturnStatement(String test, List<Token> tokens, Ast.Statement.Return expected) {
         test(tokens, expected, Parser::parseStatement);
     }
-
+    // TODO: Ask about what each of these returns should return (lol)
     private static Stream<Arguments> testReturnStatement() {
         return Stream.of(
-                Arguments.of("Return Statement",
+                Arguments.of("Return Statement Modified Final",
                         Arrays.asList(
                                 //RETURN expr;
                                 new Token(Token.Type.IDENTIFIER, "RETURN", 0),
@@ -299,6 +355,22 @@ final class ParserTests {
                                 new Token(Token.Type.OPERATOR, ";", 11)
                         ),
                         new Ast.Statement.Return(new Ast.Expression.Access(Optional.empty(), "expr"))
+                ),
+                Arguments.of("Return Missing Value Modified Final",
+                        Arrays.asList(
+                                //RETURN;
+                                new Token(Token.Type.IDENTIFIER, "RETURN", 0),
+                                new Token(Token.Type.OPERATOR, ";", 6)
+                        ),
+                        null
+                ),
+                Arguments.of("Return Missing Semicolon",
+                        Arrays.asList(
+                                //RETURN expr
+                                new Token(Token.Type.IDENTIFIER, "RETURN", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr", 7)
+                        ),
+                        null
                 )
         );
     }
