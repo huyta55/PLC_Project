@@ -18,17 +18,17 @@ public final class Generator implements Ast.Visitor<Void> {
                 visit((Ast) object);
             } else {
                 writer.write(object.toString());
-                System.out.print(object.toString());
+                //System.out.print(object.toString());
             }
         }
     }
 
     private void newline(int indent) {
         writer.println();
-        System.out.println();
+        //System.out.println();
         for (int i = 0; i < indent; i++) {
             writer.write("    ");
-            System.out.print("    ");
+            //System.out.print("    ");
         }
     }
 

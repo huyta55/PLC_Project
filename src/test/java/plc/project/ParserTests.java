@@ -100,7 +100,6 @@ final class ParserTests {
     void testDeclarationStatement(String test, List<Token> tokens, Ast.Statement.Declaration expected) {
         test(tokens, expected, Parser::parseStatement);
     }
-
     private static Stream<Arguments> testDeclarationStatement() {
         return Stream.of(
                 Arguments.of("Definition",
@@ -133,7 +132,6 @@ final class ParserTests {
     void testAssignmentStatement(String test, List<Token> tokens, Ast.Statement.Assignment expected) {
         test(tokens, expected, Parser::parseStatement);
     }
-
     private static Stream<Arguments> testAssignmentStatement() {
         return Stream.of(
                 Arguments.of("Assignment",
@@ -152,7 +150,67 @@ final class ParserTests {
         );
     }
 
-
+    @ParameterizedTest
+    @MethodSource
+    void testSwitchStatement(String test, List<Token> tokens, Ast.Statement.Switch expected) {
+        test(tokens, expected, Parser::parseStatement);
+    }
+    private static Stream<Arguments> testSwitchStatement() {
+        return Stream.of(
+                Arguments.of("Basic Switch Modified Final",
+                        Arrays.asList(
+                                new Token(Token.Type.IDENTIFIER, "SWITCH", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr", 7),
+                                new Token(Token.Type.IDENTIFIER, "DEFAULT", 12),
+                                new Token(Token.Type.IDENTIFIER, "stmt",20),
+                                new Token(Token.Type.OPERATOR, ";", 24),
+                                new Token(Token.Type.IDENTIFIER, "END", 26)
+                        ),
+                        new Ast.Statement.Switch(
+                                new Ast.Expression.Access(Optional.empty(), "expr"),
+                                Arrays.asList(
+                                        new Ast.Statement.Case(Optional.empty(),
+                                        Arrays.asList(new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt")))
+                                        )
+                                )
+                        )
+                ),
+                Arguments.of("Case Switch Modified Final",
+                        Arrays.asList(
+                                new Token(Token.Type.IDENTIFIER, "SWITCH", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr1", 7),
+                                new Token(Token.Type.IDENTIFIER, "CASE", 13),
+                                new Token(Token.Type.IDENTIFIER, "expr2",18),
+                                new Token(Token.Type.OPERATOR, ":", 24),
+                                new Token(Token.Type.IDENTIFIER, "stmt1", 26),
+                                new Token(Token.Type.OPERATOR, ";", 31),
+                                new Token(Token.Type.IDENTIFIER, "DEFAULT", 33),
+                                new Token(Token.Type.IDENTIFIER, "stmt2", 41),
+                                new Token(Token.Type.OPERATOR, ";", 42),
+                                new Token(Token.Type.IDENTIFIER, "END", 44)
+                        ),
+                        new Ast.Statement.Switch(
+                                new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                Arrays.asList(
+                                        new Ast.Statement.Case(Optional.of(new Ast.Expression.Access(Optional.empty(), ("expr2"))),
+                                                Arrays.asList(new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt1")))),
+                                        new Ast.Statement.Case(Optional.empty(),
+                                                Arrays.asList(new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt2")))
+                                        )
+                                )
+                        )
+                ),
+                Arguments.of("Empty Switch Modified Final",
+                        Arrays.asList(
+                                new Token(Token.Type.IDENTIFIER, "SWITCH", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr", 7),
+                                new Token(Token.Type.IDENTIFIER, "DEFAULT", 12),
+                                new Token(Token.Type.IDENTIFIER, "END", 20)
+                        ),
+                        null
+                )
+        );
+    }
     @ParameterizedTest
     @MethodSource
     void testIfStatement(String test, List<Token> tokens, Ast.Statement.If expected) {
@@ -253,29 +311,57 @@ final class ParserTests {
 
     private static Stream<Arguments> testLiteralExpression() {
         return Stream.of(
-                Arguments.of("Boolean Literal",
-                        Arrays.asList(new Token(Token.Type.IDENTIFIER, "TRUE", 0)),
-                        new Ast.Expression.Literal(Boolean.TRUE)
-                ),
-                Arguments.of("Integer Literal",
-                        Arrays.asList(new Token(Token.Type.INTEGER, "1", 0)),
-                        new Ast.Expression.Literal(new BigInteger("1"))
-                ),
-                Arguments.of("Decimal Literal",
+                Arguments.of("Decimal Literal Final",
                         Arrays.asList(new Token(Token.Type.DECIMAL, "2.0", 0)),
                         new Ast.Expression.Literal(new BigDecimal("2.0"))
                 ),
-                Arguments.of("Character Literal",
+                Arguments.of("Escape Character Final",
+                        Arrays.asList(new Token(Token.Type.STRING, "\"Hello,\\nWorld!\"", 0)),
+                        new Ast.Expression.Literal("Hello,\nWorld!")
+                ),
+                //
+                // Modified Parser Tests
+                //
+                Arguments.of("Boolean TRUE Literal Modified Final",
+                        Arrays.asList(new Token(Token.Type.IDENTIFIER, "TRUE", 0)),
+                        new Ast.Expression.Literal(Boolean.TRUE)
+                ),
+                Arguments.of("Boolean FALSE Literal Modified Final",
+                        Arrays.asList(new Token(Token.Type.IDENTIFIER, "FALSE", 0)),
+                        new Ast.Expression.Literal(Boolean.FALSE)
+                ),
+                Arguments.of("Integer Literal Modified Final",
+                        Arrays.asList(new Token(Token.Type.INTEGER, "1", 0)),
+                        new Ast.Expression.Literal(new BigInteger("1"))
+                ),
+                Arguments.of("Nil Literal Modified Final",
+                        Arrays.asList(new Token(Token.Type.IDENTIFIER, "NIL", 0)),
+                        new Ast.Expression.Literal(null)
+                ),
+                Arguments.of("Integer Literal (Big Integer) Modified Final",
+                        Arrays.asList(new Token(Token.Type.INTEGER, "123456789123456789123456789", 0)),
+                        new Ast.Expression.Literal(new BigInteger("123456789123456789123456789"))
+                ),
+                Arguments.of("Integer Decimal (Big Integer) Modified Final",
+                        Arrays.asList(new Token(Token.Type.DECIMAL, "123456789123456789123456789.9999999", 0)),
+                        new Ast.Expression.Literal(new BigDecimal("123456789123456789123456789.9999999"))
+                ),
+
+                Arguments.of("Character Literal Modified Final 'c'",
                         Arrays.asList(new Token(Token.Type.CHARACTER, "'c'", 0)),
                         new Ast.Expression.Literal('c')
                 ),
-                Arguments.of("String Literal",
-                        Arrays.asList(new Token(Token.Type.STRING, "\"string\"", 0)),
-                        new Ast.Expression.Literal("string")
+                Arguments.of("String Literal Modified Final",
+                        Arrays.asList(new Token(Token.Type.STRING, "\"This is a string\"", 0)),
+                        new Ast.Expression.Literal("This is a string")
                 ),
-                Arguments.of("Escape Character",
-                        Arrays.asList(new Token(Token.Type.STRING, "\"Hello,\\nWorld!\"", 0)),
-                        new Ast.Expression.Literal("Hello,\nWorld!")
+                Arguments.of("Char Escape b Modified Final",
+                        Arrays.asList(new Token(Token.Type.CHARACTER, "'\b'", 0)),
+                        new Ast.Expression.Literal("\b")
+                ),
+                Arguments.of("String Escape n Modified Final",
+                        Arrays.asList(new Token(Token.Type.CHARACTER, "\"\b\"", 0)),
+                        new Ast.Expression.Literal("\b")
                 )
         );
     }
@@ -288,7 +374,7 @@ final class ParserTests {
 
     private static Stream<Arguments> testGroupExpression() {
         return Stream.of(
-                Arguments.of("Grouped Variable",
+                Arguments.of("Grouped Variable Modified Final",
                         Arrays.asList(
                                 //(expr)
                                 new Token(Token.Type.OPERATOR, "(", 0),
@@ -297,7 +383,7 @@ final class ParserTests {
                         ),
                         new Ast.Expression.Group(new Ast.Expression.Access(Optional.empty(), "expr"))
                 ),
-                Arguments.of("Grouped Binary",
+                Arguments.of("Grouped Binary Modified Final",
                         Arrays.asList(
                                 //(expr1 + expr2)
                                 new Token(Token.Type.OPERATOR, "(", 0),
@@ -310,6 +396,22 @@ final class ParserTests {
                                 new Ast.Expression.Access(Optional.empty(), "expr1"),
                                 new Ast.Expression.Access(Optional.empty(), "expr2")
                         ))
+                ),
+                Arguments.of("Missing Closing Parenthesis Modified Final",
+                        Arrays.asList(
+                                //(expr)
+                                new Token(Token.Type.OPERATOR, "(", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr", 1)
+                        ),
+                        null
+                ),
+                Arguments.of("Missing Expression Modified Final",
+                        Arrays.asList(
+                                //(expr)
+                                new Token(Token.Type.OPERATOR, "(", 0),
+                                new Token(Token.Type.OPERATOR, ")", 1)
+                        ),
+                        null
                 )
         );
     }
@@ -322,7 +424,7 @@ final class ParserTests {
 
     private static Stream<Arguments> testBinaryExpression() {
         return Stream.of(
-                Arguments.of("Binary And",
+                Arguments.of("Binary And Modified Final",
                         Arrays.asList(
                                 //expr1 && expr2
                                 new Token(Token.Type.IDENTIFIER, "expr1", 0),
@@ -334,7 +436,19 @@ final class ParserTests {
                                 new Ast.Expression.Access(Optional.empty(), "expr2")
                         )
                 ),
-                Arguments.of("Binary Equality",
+                Arguments.of("Binary OR Modified Final",
+                        Arrays.asList(
+                                //expr1 || expr2
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "||", 6),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 9)
+                        ),
+                        new Ast.Expression.Binary("||",
+                                new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                new Ast.Expression.Access(Optional.empty(), "expr2")
+                        )
+                ),
+                Arguments.of("Binary Equality Modified Final",
                         Arrays.asList(
                                 //expr1 == expr2
                                 new Token(Token.Type.IDENTIFIER, "expr1", 0),
@@ -346,7 +460,43 @@ final class ParserTests {
                                 new Ast.Expression.Access(Optional.empty(), "expr2")
                         )
                 ),
-                Arguments.of("Binary Addition",
+                Arguments.of("Binary Inequality Modified Final",
+                        Arrays.asList(
+                                //expr1 != expr2
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "!=", 6),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 9)
+                        ),
+                        new Ast.Expression.Binary("!=",
+                                new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                new Ast.Expression.Access(Optional.empty(), "expr2")
+                        )
+                ),
+                Arguments.of("Binary Greater Than Modified Final",
+                        Arrays.asList(
+                                //expr1 > expr2
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, ">", 6),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 8)
+                        ),
+                        new Ast.Expression.Binary(">",
+                                new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                new Ast.Expression.Access(Optional.empty(), "expr2")
+                        )
+                ),
+                Arguments.of("Binary Less Than Modified Final",
+                        Arrays.asList(
+                                //expr1 < expr2
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "<", 6),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 8)
+                        ),
+                        new Ast.Expression.Binary("<",
+                                new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                new Ast.Expression.Access(Optional.empty(), "expr2")
+                        )
+                ),
+                Arguments.of("Binary Addition Modified Final",
                         Arrays.asList(
                                 //expr1 + expr2
                                 new Token(Token.Type.IDENTIFIER, "expr1", 0),
@@ -358,7 +508,19 @@ final class ParserTests {
                                 new Ast.Expression.Access(Optional.empty(), "expr2")
                         )
                 ),
-                Arguments.of("Binary Multiplication",
+                Arguments.of("Binary Subtraction Modified Final",
+                        Arrays.asList(
+                                //expr1 - expr2
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "-", 6),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 8)
+                        ),
+                        new Ast.Expression.Binary("-",
+                                new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                new Ast.Expression.Access(Optional.empty(), "expr2")
+                        )
+                ),
+                Arguments.of("Binary Multiplication Modified Final",
                         Arrays.asList(
                                 //expr1 * expr2
                                 new Token(Token.Type.IDENTIFIER, "expr1", 0),
@@ -369,6 +531,290 @@ final class ParserTests {
                                 new Ast.Expression.Access(Optional.empty(), "expr1"),
                                 new Ast.Expression.Access(Optional.empty(), "expr2")
                         )
+                ),
+                Arguments.of("Binary Multiplication Modified Final",
+                        Arrays.asList(
+                                //expr1 / expr2
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "/", 6),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 8)
+                        ),
+                        new Ast.Expression.Binary("/",
+                                new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                new Ast.Expression.Access(Optional.empty(), "expr2")
+                        )
+                ),
+                Arguments.of("Binary Exponent Modified Final",
+                        Arrays.asList(
+                                //expr1 * expr2
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "^", 6),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 8)
+                        ),
+                        new Ast.Expression.Binary("^",
+                                new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                new Ast.Expression.Access(Optional.empty(), "expr2")
+                        )
+                ),
+                // TODO: Ask if these multiple test case is coded properly
+                Arguments.of("Binary Multiple Logical Ands Modified Final",
+                        Arrays.asList(
+                                //expr1 && expr2 && expr3
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "&&", 6),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 9),
+                                new Token(Token.Type.OPERATOR, "&&", 15),
+                                new Token(Token.Type.IDENTIFIER, "expr3", 18)
+                        ),
+                        new Ast.Expression.Binary("&&",
+                                new Ast.Expression.Binary("&&",
+                                        new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                        new Ast.Expression.Access(Optional.empty(), "expr2")
+                                ),
+                                new Ast.Expression.Access(Optional.empty(), "expr3")
+                        )
+                ),
+                Arguments.of("Binary Multiple Logical ORs Modified Final",
+                        Arrays.asList(
+                                //expr1 || expr2 || expr3
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "||", 6),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 9),
+                                new Token(Token.Type.OPERATOR, "||", 15),
+                                new Token(Token.Type.IDENTIFIER, "expr3", 18)
+                        ),
+                        new Ast.Expression.Binary("||",
+                                new Ast.Expression.Binary("||",
+                                        new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                        new Ast.Expression.Access(Optional.empty(), "expr2")
+                                ),
+                                new Ast.Expression.Access(Optional.empty(), "expr3")
+                        )
+                ),
+                Arguments.of("Binary Multiple Comparison == Modified Final",
+                        Arrays.asList(
+                                //expr1 || expr2 || expr3
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "==", 6),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 9),
+                                new Token(Token.Type.OPERATOR, "==", 15),
+                                new Token(Token.Type.IDENTIFIER, "expr3", 18)
+                        ),
+                        new Ast.Expression.Binary("==",
+                                new Ast.Expression.Binary("==",
+                                        new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                        new Ast.Expression.Access(Optional.empty(), "expr2")
+                                ),
+                                new Ast.Expression.Access(Optional.empty(), "expr3")
+                        )
+                ),
+                Arguments.of("Binary Multiple Comparison != Modified Final",
+                        Arrays.asList(
+                                //expr1 || expr2 || expr3
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "!=", 6),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 9),
+                                new Token(Token.Type.OPERATOR, "!=", 15),
+                                new Token(Token.Type.IDENTIFIER, "expr3", 18)
+                        ),
+                        new Ast.Expression.Binary("!=",
+                                new Ast.Expression.Binary("!=",
+                                        new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                        new Ast.Expression.Access(Optional.empty(), "expr2")
+                                ),
+                                new Ast.Expression.Access(Optional.empty(), "expr3")
+                        )
+                ),
+                Arguments.of("Binary Multiple Comparison < Modified Final",
+                        Arrays.asList(
+                                //expr1 < expr2 < expr3
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "<", 6),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 8),
+                                new Token(Token.Type.OPERATOR, "<", 14),
+                                new Token(Token.Type.IDENTIFIER, "expr3", 16)
+                        ),
+                        new Ast.Expression.Binary("<",
+                                new Ast.Expression.Binary("<",
+                                        new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                        new Ast.Expression.Access(Optional.empty(), "expr2")
+                                ),
+                                new Ast.Expression.Access(Optional.empty(), "expr3")
+                        )
+                ),
+                Arguments.of("Binary Multiple Comparison > Modified Final",
+                        Arrays.asList(
+                                //expr1 < expr2 < expr3
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, ">", 6),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 8),
+                                new Token(Token.Type.OPERATOR, ">", 14),
+                                new Token(Token.Type.IDENTIFIER, "expr3", 16)
+                        ),
+                        new Ast.Expression.Binary(">",
+                                new Ast.Expression.Binary(">",
+                                        new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                        new Ast.Expression.Access(Optional.empty(), "expr2")
+                                ),
+                                new Ast.Expression.Access(Optional.empty(), "expr3")
+                        )
+                ),
+                Arguments.of("Binary Multiple Addition Modified Final",
+                        Arrays.asList(
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "+", 6),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 8),
+                                new Token(Token.Type.OPERATOR, "+", 14),
+                                new Token(Token.Type.IDENTIFIER, "expr3", 16)
+                        ),
+                        new Ast.Expression.Binary("+",
+                                new Ast.Expression.Binary("+",
+                                        new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                        new Ast.Expression.Access(Optional.empty(), "expr2")
+                                ),
+                                new Ast.Expression.Access(Optional.empty(), "expr3")
+                        )
+                ),
+                Arguments.of("Binary Multiple Subtraction Modified Final",
+                        Arrays.asList(
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "-", 6),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 8),
+                                new Token(Token.Type.OPERATOR, "-", 14),
+                                new Token(Token.Type.IDENTIFIER, "expr3", 16)
+                        ),
+                        new Ast.Expression.Binary("-",
+                                new Ast.Expression.Binary("-",
+                                        new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                        new Ast.Expression.Access(Optional.empty(), "expr2")
+                                ),
+                                new Ast.Expression.Access(Optional.empty(), "expr3")
+                        )
+                ),
+                Arguments.of("Binary Multiple Multiplication Modified Final",
+                        Arrays.asList(
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "*", 6),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 8),
+                                new Token(Token.Type.OPERATOR, "*", 14),
+                                new Token(Token.Type.IDENTIFIER, "expr3", 16)
+                        ),
+                        new Ast.Expression.Binary("*",
+                                new Ast.Expression.Binary("*",
+                                        new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                        new Ast.Expression.Access(Optional.empty(), "expr2")
+                                ),
+                                new Ast.Expression.Access(Optional.empty(), "expr3")
+                        )
+                ),
+                Arguments.of("Binary Multiple Division Modified Final",
+                        Arrays.asList(
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "/", 6),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 8),
+                                new Token(Token.Type.OPERATOR, "/", 14),
+                                new Token(Token.Type.IDENTIFIER, "expr3", 16)
+                        ),
+                        new Ast.Expression.Binary("/",
+                                new Ast.Expression.Binary("/",
+                                        new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                        new Ast.Expression.Access(Optional.empty(), "expr2")
+                                ),
+                                new Ast.Expression.Access(Optional.empty(), "expr3")
+                        )
+                ),
+                Arguments.of("Binary Multiple Exponent Modified Final",
+                        Arrays.asList(
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "^", 6),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 8),
+                                new Token(Token.Type.OPERATOR, "^", 14),
+                                new Token(Token.Type.IDENTIFIER, "expr3", 16)
+                        ),
+                        new Ast.Expression.Binary("^",
+                                new Ast.Expression.Binary("^",
+                                        new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                        new Ast.Expression.Access(Optional.empty(), "expr2")
+                                ),
+                                new Ast.Expression.Access(Optional.empty(), "expr3")
+                        )
+                ),
+                Arguments.of("Binary Missing Operand AND Modified Final",
+                        Arrays.asList(
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "&&", 6)
+                        ),
+                        null
+                ),
+                Arguments.of("Binary Missing Operand OR Modified Final",
+                        Arrays.asList(
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "||", 6)
+                        ),
+                        null
+                ),
+                Arguments.of("Binary Missing Operand < Modified Final",
+                        Arrays.asList(
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "<", 6)
+                        ),
+                        null
+                ),
+                Arguments.of("Binary Missing Operand > Modified Final",
+                        Arrays.asList(
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, ">", 6)
+                        ),
+                        null
+                ),
+                Arguments.of("Binary Missing Operand == Modified Final",
+                        Arrays.asList(
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "==", 6)
+                        ),
+                        null
+                ),
+                Arguments.of("Binary Missing Operand != Modified Final",
+                        Arrays.asList(
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "!=", 6)
+                        ),
+                        null
+                ),
+                Arguments.of("Binary Missing Operand + Modified Final",
+                        Arrays.asList(
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "+", 6)
+                        ),
+                        null
+                ),
+                Arguments.of("Binary Missing Operand - Modified Final",
+                        Arrays.asList(
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "-", 6)
+                        ),
+                        null
+                ),
+                Arguments.of("Binary Missing Operand * Modified Final",
+                        Arrays.asList(
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "*", 6)
+                        ),
+                        null
+                ),
+                Arguments.of("Binary Missing Operand / Modified Final",
+                        Arrays.asList(
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "/", 6)
+                        ),
+                        null
+                ),
+                Arguments.of("Binary Missing Operand ^ Modified Final",
+                        Arrays.asList(
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.OPERATOR, "^", 6)
+                        ),
+                        null
                 )
         );
     }
@@ -381,19 +827,32 @@ final class ParserTests {
 
     private static Stream<Arguments> testAccessExpression() {
         return Stream.of(
-                Arguments.of("Variable",
+                Arguments.of("Variable Modified Final",
                         Arrays.asList(new Token(Token.Type.IDENTIFIER, "name", 0)),
                         new Ast.Expression.Access(Optional.empty(), "name")
                 ),
-                Arguments.of("List Index Access",
+                Arguments.of("List Index Access Modified Final",
                         Arrays.asList(
                                 //list[expr]
                                 new Token(Token.Type.IDENTIFIER, "list", 0),
                                 new Token(Token.Type.OPERATOR, "[", 4),
-                                new Token(Token.Type.IDENTIFIER, "expr", 5),
-                                new Token(Token.Type.OPERATOR, "]", 9)
+                                new Token(Token.Type.IDENTIFIER, "offset", 5),
+                                new Token(Token.Type.OPERATOR, "]", 11)
                         ),
-                        new Ast.Expression.Access(Optional.of(new Ast.Expression.Access(Optional.empty(), "expr")), "list")
+                        new Ast.Expression.Access(Optional.of(new Ast.Expression.Access(Optional.empty(), "offset")), "list")
+                ),
+                // TODO: Ask what this case is supposed to return
+                Arguments.of("Complex Expression Modified Final",
+                        Arrays.asList(
+                                //list[e1 + e2]
+                                new Token(Token.Type.IDENTIFIER, "list", 0),
+                                new Token(Token.Type.OPERATOR, "[", 4),
+                                new Token(Token.Type.IDENTIFIER, "e1", 5),
+                                new Token(Token.Type.OPERATOR, "+", 7),
+                                new Token(Token.Type.IDENTIFIER, "e2", 9),
+                                new Token(Token.Type.OPERATOR, "]", 10)
+                        ),
+                        new Ast.Expression.Access(Optional.of(new Ast.Expression.Access(Optional.of(new Ast.Expression.Binary("+", new Ast.Expression.Literal("e1"), new Ast.Expression.Literal("e2"))), "list")), "list")
                 )
         );
     }
