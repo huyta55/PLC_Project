@@ -27,7 +27,6 @@ final class ParserTests {
     void testSource(String test, List<Token> tokens, Ast.Source expected) {
         test(tokens, expected, Parser::parseSource);
     }
-
     private static Stream<Arguments> testSource() {
         return Stream.of(
                 Arguments.of("Zero Statements",
@@ -70,10 +69,103 @@ final class ParserTests {
                                         new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt"))
                                 )))
                         )
+                ),
+                Arguments.of("Function Missing End Final",
+                        Arrays.asList(
+                                //FUN name(): Type DO stmt; END
+                                new Token(Token.Type.IDENTIFIER, "FUN", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, "(", 8),
+                                new Token(Token.Type.OPERATOR, ")", 9),
+                                new Token(Token.Type.OPERATOR, ":", 10),
+                                new Token(Token.Type.IDENTIFIER, "Type", 12),
+                                new Token(Token.Type.IDENTIFIER, "DO", 17),
+                                new Token(Token.Type.IDENTIFIER, "stmt", 20),
+                                new Token(Token.Type.OPERATOR, ";", 24)
+                        ),
+                        null
+                ),
+                Arguments.of("Multiple Globals",
+                        Arrays.asList(
+                                // VAR x: Type = expr; VAR y: Type = expr; VAR z: Type = expr;
+                                new Token(Token.Type.IDENTIFIER, "VAR", 0),
+                                new Token(Token.Type.IDENTIFIER, "x", 4),
+                                new Token(Token.Type.OPERATOR, ":", 5),
+                                new Token(Token.Type.IDENTIFIER, "Integer", 7),
+                                new Token(Token.Type.OPERATOR, "=", 12),
+                                new Token(Token.Type.IDENTIFIER, "expr", 14),
+                                new Token(Token.Type.OPERATOR, ";", 19),
+                                //
+                                new Token(Token.Type.IDENTIFIER, "VAR", 0),
+                                new Token(Token.Type.IDENTIFIER, "y", 4),
+                                new Token(Token.Type.OPERATOR, ":", 5),
+                                new Token(Token.Type.IDENTIFIER, "Integer", 7),
+                                new Token(Token.Type.OPERATOR, "=", 12),
+                                new Token(Token.Type.IDENTIFIER, "expr", 14),
+                                new Token(Token.Type.OPERATOR, ";", 19),
+                                //
+                                new Token(Token.Type.IDENTIFIER, "VAR", 0),
+                                new Token(Token.Type.IDENTIFIER, "z", 4),
+                                new Token(Token.Type.OPERATOR, ":", 5),
+                                new Token(Token.Type.IDENTIFIER, "Integer", 7),
+                                new Token(Token.Type.OPERATOR, "=", 12),
+                                new Token(Token.Type.IDENTIFIER, "expr", 14),
+                                new Token(Token.Type.OPERATOR, ";", 19)
+                        ),
+                        new Ast.Source(
+                                Arrays.asList(new Ast.Global("x", "Integer", true, Optional.of(new Ast.Expression.Access(Optional.empty(), "expr"))), new Ast.Global("y", "Integer", true, Optional.of(new Ast.Expression.Access(Optional.empty(), "expr"))), new Ast.Global("z", "Integer", true, Optional.of(new Ast.Expression.Access(Optional.empty(), "expr")))),
+                                Arrays.asList()
+                        )
+                )
+
+        );
+    }
+    // TODO: Ask how to write Function Missing End (Just write it like test Source but instead of calling parseSource call parseFunction
+
+    @ParameterizedTest
+    @MethodSource
+    void testFunction(String test, List<Token> tokens, Ast.Function expected) {
+        test(tokens, expected, Parser::parseFunction);
+    }
+    private static Stream<Arguments> testFunction() {
+        return Stream.of(
+                Arguments.of("Function Missing End Modified Final",
+                    Arrays.asList(
+                            //FUN name(): Type DO stmt; END
+                            new Token(Token.Type.IDENTIFIER, "FUN", 0),
+                            new Token(Token.Type.IDENTIFIER, "name", 4),
+                            new Token(Token.Type.OPERATOR, "(", 8),
+                            new Token(Token.Type.OPERATOR, ")", 9),
+                            new Token(Token.Type.OPERATOR, ":", 10),
+                            new Token(Token.Type.IDENTIFIER, "Type", 12),
+                            new Token(Token.Type.IDENTIFIER, "DO", 17),
+                            new Token(Token.Type.IDENTIFIER, "stmt", 20),
+                            new Token(Token.Type.OPERATOR, ";", 24),
+                            new Token(Token.Type.IDENTIFIER, "END", 26)
+                    ),
+                    new Ast.Function("name", Arrays.asList(), Arrays.asList(), Optional.of("Type"), Arrays.asList(
+                            new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt"))
+                    ))
+                ),
+                Arguments.of("Function Missing End Modified Final",
+                        Arrays.asList(
+                                //FUN name(): Type DO stmt; END
+                                new Token(Token.Type.IDENTIFIER, "FUN", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, "(", 8),
+                                new Token(Token.Type.OPERATOR, ")", 9),
+                                new Token(Token.Type.OPERATOR, ":", 10),
+                                new Token(Token.Type.IDENTIFIER, "Type", 12),
+                                new Token(Token.Type.IDENTIFIER, "DO", 17),
+                                new Token(Token.Type.IDENTIFIER, "stmt", 20),
+                                new Token(Token.Type.OPERATOR, ";", 24)
+                        ),
+                        null
                 )
         );
     }
 
+    // TODO: Ask how to write Global Declaration (same thing as function missing end)
     @ParameterizedTest
     @MethodSource
     void testExpressionStatement(String test, List<Token> tokens, Ast.Statement.Expression expected) {
@@ -82,7 +174,7 @@ final class ParserTests {
 
     private static Stream<Arguments> testExpressionStatement() {
         return Stream.of(
-                Arguments.of("Function Expression",
+                Arguments.of("Function Expression Modified Final",
                         Arrays.asList(
                                 //name();
                                 new Token(Token.Type.IDENTIFIER, "name", 0),
@@ -91,6 +183,21 @@ final class ParserTests {
                                 new Token(Token.Type.OPERATOR, ";", 6)
                         ),
                         new Ast.Statement.Expression(new Ast.Expression.Function("name", Arrays.asList()))
+                ),
+                Arguments.of("Missing Semicolon Expression Modified Final",
+                        Arrays.asList(
+                                // x
+                                new Token(Token.Type.IDENTIFIER, "x", 0)
+                        ),
+                        null
+                ),
+                Arguments.of("Variable Modified Final",
+                        Arrays.asList(
+                                //expr;
+                                new Token(Token.Type.IDENTIFIER, "expr", 0),
+                                new Token(Token.Type.OPERATOR, ";", 4)
+                        ),
+                        new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "expr"))
                 )
         );
     }
@@ -102,7 +209,7 @@ final class ParserTests {
     }
     private static Stream<Arguments> testDeclarationStatement() {
         return Stream.of(
-                Arguments.of("Definition",
+                Arguments.of("Definition Modified Final",
                         Arrays.asList(
                                 //LET name: Type;
                                 new Token(Token.Type.IDENTIFIER, "LET", 0),
@@ -113,7 +220,7 @@ final class ParserTests {
                         ),
                         new Ast.Statement.Declaration("name", Optional.of("Type"), Optional.empty())
                 ),
-                Arguments.of("Initialization",
+                Arguments.of("Initialization Modified Final",
                         Arrays.asList(
                                 //LET name = expr;
                                 new Token(Token.Type.IDENTIFIER, "LET", 0),
@@ -123,6 +230,37 @@ final class ParserTests {
                                 new Token(Token.Type.OPERATOR, ";", 15)
                         ),
                         new Ast.Statement.Declaration("name", Optional.empty(), Optional.of(new Ast.Expression.Access(Optional.empty(), "expr")))
+                ),
+                Arguments.of("Type Annotation Modified Final",
+                        Arrays.asList(
+                                //LET name: Type = expr
+                                new Token(Token.Type.IDENTIFIER, "LET", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, ":", 8),
+                                new Token(Token.Type.IDENTIFIER, "Type", 10),
+                                new Token(Token.Type.OPERATOR, "=", 15),
+                                new Token(Token.Type.IDENTIFIER, "expr", 17),
+                                new Token(Token.Type.OPERATOR, ";", 21)
+                        ),
+                        new Ast.Statement.Declaration("name", Optional.of("Type"), Optional.of(new Ast.Expression.Access(Optional.empty(), "expr")))
+                ),
+                Arguments.of("Missing Semicolon Modified Final",
+                        Arrays.asList(
+                                //LET name
+                                new Token(Token.Type.IDENTIFIER, "LET", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4)
+                        ),
+                        null
+                ),
+                Arguments.of("Missing Expression Modified Final",
+                        Arrays.asList(
+                                //LET name: Type = expr
+                                new Token(Token.Type.IDENTIFIER, "LET", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, "=", 9),
+                                new Token(Token.Type.OPERATOR, ";", 11)
+                        ),
+                        null
                 )
         );
     }
@@ -344,7 +482,6 @@ final class ParserTests {
     void testReturnStatement(String test, List<Token> tokens, Ast.Statement.Return expected) {
         test(tokens, expected, Parser::parseStatement);
     }
-    // TODO: Ask about what each of these returns should return (lol)
     private static Stream<Arguments> testReturnStatement() {
         return Stream.of(
                 Arguments.of("Return Statement Modified Final",
@@ -380,7 +517,7 @@ final class ParserTests {
     void testLiteralExpression(String test, List<Token> tokens, Ast.Expression.Literal expected) {
         test(tokens, expected, Parser::parseExpression);
     }
-
+    // TODO: Ask about the char escapes
     private static Stream<Arguments> testLiteralExpression() {
         return Stream.of(
                 Arguments.of("Decimal Literal Final",
@@ -628,7 +765,6 @@ final class ParserTests {
                                 new Ast.Expression.Access(Optional.empty(), "expr2")
                         )
                 ),
-                // TODO: Ask if these multiple test case is coded properly
                 Arguments.of("Binary Multiple Logical Ands Modified Final",
                         Arrays.asList(
                                 //expr1 && expr2 && expr3
@@ -913,7 +1049,6 @@ final class ParserTests {
                         ),
                         new Ast.Expression.Access(Optional.of(new Ast.Expression.Access(Optional.empty(), "offset")), "list")
                 ),
-                // TODO: Ask what this case is supposed to return
                 Arguments.of("Complex Expression Modified Final",
                         Arrays.asList(
                                 //list[e1 + e2]
@@ -924,7 +1059,7 @@ final class ParserTests {
                                 new Token(Token.Type.IDENTIFIER, "e2", 9),
                                 new Token(Token.Type.OPERATOR, "]", 10)
                         ),
-                        new Ast.Expression.Access(Optional.of(new Ast.Expression.Access(Optional.of(new Ast.Expression.Binary("+", new Ast.Expression.Literal("e1"), new Ast.Expression.Literal("e2"))), "list")), "list")
+                        new Ast.Expression.Access(Optional.of(new Ast.Expression.Binary("+", new Ast.Expression.Access(Optional.empty(), "e1"), new Ast.Expression.Access(Optional.empty(), "e2"))), "list")
                 )
         );
     }

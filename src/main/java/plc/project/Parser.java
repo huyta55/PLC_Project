@@ -230,7 +230,7 @@ public final class Parser {
                 return new Ast.Global(name, typeName, true, Optional.of(parseExpression()));
             }
             // if there's a token there, but it's not the =, then throw exception
-            else if (tokens.has(0)) {
+            else if (tokens.has(0) && !match(";")) {
                 throw new ParseException("Expecting =", tokens.get(0).getIndex());
             }
             // else it's just a variable and identifier so move on accordingly
@@ -285,9 +285,9 @@ public final class Parser {
      * next tokens start a method, aka {@code DEF}.
      */
     public Ast.Function parseFunction() throws ParseException {
-        // TODO: Check whether we have to account for empty token (index wise as well as existence wise)
-        // TODO: Ask again about the index stuff when throwing an exception
-        // TODO: Ask if we have to account for the parsedFunction just ending abruptly instead of failing a parse test
+        if (peek("FUN")) {
+            tokens.advance();
+        }
         // Check whether there is a valid function name after the FUN keyword, else throw a parse exception
         if (match(Token.Type.IDENTIFIER)) {
             // If the first identifier matches, then grab the name of the identifier since it's the name of the function
@@ -359,6 +359,12 @@ public final class Parser {
                             // Else parse the statements
                             else {
                                 List<Ast.Statement> statementList = parseBlock();
+                                // check for the semicolon
+                                parseSemicolon();
+                                // check for end
+                                if (!match("END")) {
+                                    throwException("Missing End", 0);
+                                }
                                 return new Ast.Function(functionName, parameterTypes, parameterList, typeName, statementList);
                             }
                         } else {
@@ -393,6 +399,10 @@ public final class Parser {
                         } else {
                             // else parse the block into a statement list and then create the function ast and return it
                             List<Ast.Statement> statementList = parseBlock();
+                            // Check for the DO
+                            if (!match("END")) {
+                                throwException("Missing End", 0);
+                            }
                             if (type) {
                                 return new Ast.Function(functionName, parameterList, parameterTypes, Optional.of(returnType), statementList);
                             }
@@ -735,22 +745,13 @@ public final class Parser {
             String name = tokens.get(-1).getLiteral();
             Optional o = Optional.empty();
             if (match("[")) {
-                String name2 = "";
-                while (!match("]")) {
-                    checkToken();
-                    name2 += tokens.get(0).getLiteral();
-                    tokens.advance();
-                    checkToken();
-                    // Check for the "]"
-                    if (match("]")) {
-                        Ast.Expression.Access access = new Ast.Expression.Access(Optional.empty(), name2);
-                        return new Ast.Expression.Access(Optional.of(access), name);
-                    }
-                    else if (!tokens.has(1)) {
-                        throwException("Expecting ]", 1);
-                    }
-                    name2 += " ";
+                // parse the expression
+                Optional expr = Optional.of(parseExpression());
+                // check for the "]"
+                if (!match("]")) {
+                    throwException("Missing ]", 0);
                 }
+                return new Ast.Expression.Access(expr, name);
             }
             if (match("(")) {
                 List<Ast.Expression> javaList = new ArrayList<>();

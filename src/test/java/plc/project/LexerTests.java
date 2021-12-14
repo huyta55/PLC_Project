@@ -22,13 +22,30 @@ public class LexerTests {
 
     private static Stream<Arguments> testLex() {
         return Stream.of(
-                Arguments.of("exampleLex", "LET x = 5;", true, Arrays.asList
+                Arguments.of("Identifier Final", "LET x = 5;", true, Arrays.asList
                         (new Token(Token.Type.IDENTIFIER, "LET", 0),
                                 new Token(Token.Type.IDENTIFIER, "x", 4),
                                 new Token(Token.Type.OPERATOR, "=", 6),
                                 new Token(Token.Type.INTEGER, "5", 8),
                                 new Token(Token.Type.OPERATOR, ";", 9))
+                ),
+                Arguments.of("Number Integer Final", "5", true, Arrays.asList(
+                        new Token(Token.Type.INTEGER, "5", 0))
+                ),
+                Arguments.of("Number Decimal Final", "3.0", true, Arrays.asList(
+                        new Token(Token.Type.DECIMAL, "3.0", 0))
+                ),
+                Arguments.of("String Final", "\"Hello, World!\" \"Hello, World2\"", true, Arrays.asList(
+                        new Token(Token.Type.STRING, "\"Hello, World!\"", 0),
+                        new Token(Token.Type.STRING, "\"Hello, World2\"", 16))
+                ),
+                Arguments.of("Character Final", "'o'", true, Arrays.asList(
+                        new Token(Token.Type.CHARACTER, "'o'", 0))
+                ),
+                Arguments.of("Operator Final", "*", true, Arrays.asList(
+                        new Token(Token.Type.OPERATOR, "*", 0))
                 )
+
         );
     }
 

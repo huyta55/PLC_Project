@@ -254,8 +254,8 @@ final class InterpreterTests {
         Assertions.assertEquals(new Character('n'), scope.lookupVariable("letter").getValue().getValue());
     }
     @Test
+    // TODO: Ask for help on this
     void testFinalSwitchStatement() {
-        // SWITCH letter CASE 'y': print("yes"); letter = 'n'; DEFAULT: print("no"); END
 
         Scope scope = new Scope(null);
         scope.defineVariable("letter", true, Environment.create(new Character('a')));

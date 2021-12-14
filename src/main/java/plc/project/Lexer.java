@@ -171,10 +171,11 @@ public final class Lexer {
         // check that if the character was a 0, then there's nothing that comes after it unless it's a decimal
         if (chars.get(0) == '0') {
             if (!(chars.has(1))) {
+                chars.advance();
                 return new Token(Token.Type.INTEGER, number, startIndex);
             }
-            // else check that there's a decimal point that follows
             chars.advance();
+            // else check that there's a decimal point that follows
             if (peek(String.valueOf(chars.get(0)), ".")) {
                 decimal = true;
                 if (!(chars.has(1))) {
@@ -182,9 +183,9 @@ public final class Lexer {
                 }
             }
         }
+        chars.advance();
         // while there are more characters in the token, go to them and check
-        while (chars.has(1)) {
-            chars.advance();
+        while (chars.has(0)) {
             // check that current character is a digit
             if (!Character.isDigit(chars.get(0))) {
                 // Check if it's a decimal
@@ -204,6 +205,7 @@ public final class Lexer {
                 }
             }
             number+= chars.get(0);
+            chars.advance();
         }
         // return the correct token type based on decimal
         if (decimal) {
@@ -257,9 +259,9 @@ public final class Lexer {
             throw new ParseException("Unterminated Char", chars.index);
         }
         character += chars.get(0);
+        chars.advance();
         return new Token(Token.Type.CHARACTER, character, startIndex);
     }
-
     // DONE
     public Token lexString() {
         boolean checkQuotes = false;
