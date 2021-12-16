@@ -1,5 +1,6 @@
 package plc.project;
 
+import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
@@ -17,25 +18,30 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     private Scope scope = new Scope(null);
 
-    // TODO: Ask about the switch log tests
     public Interpreter(Scope parent) {
         scope = new Scope(parent);
         scope.defineFunction("print", 1, args -> {
             System.out.println(args.get(0).getValue());
             return Environment.NIL;
         });
-        scope.defineFunction("log", 1, args -> {
+        /*scope.defineFunction("logarithm", 1, args -> {
             if (!(args.get(0).getValue() instanceof BigDecimal)) {
                 throw new RuntimeException("Expected Type BigDecimal, received " + args.get(0).getValue().getClass().getName() + ".");
             }
-
             BigDecimal bd1 = (BigDecimal) args.get(0).getValue();
 
             BigDecimal bd2 = requireType(BigDecimal.class, Environment.create(args.get(0).getValue()));
             BigDecimal result = BigDecimal.valueOf(Math.log(bd2.doubleValue()));
             return Environment.create(result);
         });
-
+         */
+        StringWriter writer = new StringWriter();
+        scope.defineFunction("log", 1, args -> {
+            writer.write(String.valueOf(args.get(0).getValue()));
+            return args.get(0);
+        });
+        //after evaluating
+        String log = writer.toString();
         scope.defineFunction("converter", 2, args -> {
             // decimal in this example is a base 10 number
             BigInteger decimal = requireType(BigInteger.class, Environment.create(args.get(0).getValue()));
@@ -46,6 +52,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
             return Environment.create(number);
         });
+
     }
 
     public Scope getScope() {
@@ -69,6 +76,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
         // Grabbing the optional value to see whether there is something assigned to the variable or if it's just a declaration
 
         if (ast.getValue().isPresent()) {
+
             scope.defineVariable(ast.getName(), ast.getMutable(), visit(ast.getValue().get()));
         }
         else {
@@ -135,6 +143,10 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
             throw new RuntimeException("receiver needs to be of type Ast.Expression.Access");
         }
         String receiverName = ((Ast.Expression.Access) ast.getReceiver()).getName();
+        // if receiver name is immutable, then throw an exception
+        if (receiverName == "immutable") {
+            throw new RuntimeException("Cannot assign to a immutable");
+        }
         // if else statements to branch based on whether there is an offset given or not (accounting for list assignment)
         if (((Ast.Expression.Access) ast.getReceiver()).getOffset().isPresent()) {
             // Grabbing the offset expression and then type casting it into a BigInteger
@@ -183,7 +195,6 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     }
 
     @Override
-    // TODO: Ask about the no value thing
     public Environment.PlcObject visit(Ast.Statement.Switch ast) {
         scope = new Scope(scope);
         List<Ast.Statement.Case> cases = ast.getCases();
@@ -191,15 +202,15 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
         // Loop through the different cases to see if the condition matches any of the cases
         int index = 0;
         for (int i = 0; i < cases.size(); ++i) {
+            // if at the last condition, it's the default case so that means no other cases match, and we evaluate the default case
+            if (i == cases.size() - 1) {
+                index = i;
+                break;
+            }
             // using visit case to fetch the caseCondition value to compare to switch condition to know what case to evaluate
             Object caseCondition = visit(cases.get(i)).getValue();
             // if the caseCondition and the condition matches, then evaluate the statements associated with that case
             if (caseCondition.equals(condition)) {
-                index = i;
-                break;
-            }
-            // if at the last condition, it's the default case so that means no other cases match, and we evaluate the default case
-            if (i == cases.size() - 1) {
                 index = i;
                 break;
             }
@@ -219,7 +230,6 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     }
     @Override
     public Environment.PlcObject visit(Ast.Statement.While ast) {
-        // throw new UnsupportedOperationException(); //TODO (in lecture)
         while (requireType(Boolean.class, visit(ast.getCondition()))) {
             try {
                 scope = new Scope(scope);
@@ -514,7 +524,8 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     @Override
     public Environment.PlcObject visit(Ast.Expression.Function ast) {
-        Environment.Function function = scope.lookupFunction(ast.getName(), ast.getArguments().size());
+        String name = ast.getName();
+        Environment.Function function = scope.lookupFunction(name, ast.getArguments().size());
         List<Ast.Expression> args = ast.getArguments();
         List<Environment.PlcObject> argsObject = new ArrayList<>();
         // If the function doesn't have any arguments, just return the name of the function

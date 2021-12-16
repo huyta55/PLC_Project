@@ -81,7 +81,6 @@ public class GeneratorTests {
                 )
         );
     }
-
     @Test
     void testList() {
         // LIST list: Decimal = [1.0, 1.5, 2.0];
@@ -100,10 +99,18 @@ public class GeneratorTests {
     }
 
     @Test
-    void testGlobal() {
+    void testGlobalMutableDeclaration() {
         Ast.Global global = new Ast.Global("str", "String", true, Optional.empty());
         Ast.Global astList = init(global, ast -> ast.setVariable(new Environment.Variable("str", "str", Environment.Type.STRING, true, Environment.create(Environment.NIL))));
         String expected = new String("String str;");
+        test(astList, expected);
+    }
+    @Test
+    void testGlobalJVMType() {
+        Environment.registerType(new Environment.Type("Type", "JvmType", new Scope(null)));
+        Ast.Global global = new Ast.Global("name", "Type", true, Optional.empty());
+        Ast.Global astList = init(global, ast -> ast.setVariable(new Environment.Variable("name", "name", Environment.getType("Type"), true, Environment.create(Environment.NIL))));
+        String expected = new String("JvmType name;");
         test(astList, expected);
     }
 
@@ -326,6 +333,11 @@ public class GeneratorTests {
                         // Hello World
                         init(new Ast.Expression.Literal("Hello World"), ast -> ast.setType(Environment.Type.STRING)),
                         "\"Hello World\""
+                ),
+                Arguments.of("NIL",
+                        // NIL
+                        init(new Ast.Expression.Literal(Environment.NIL), ast -> ast.setType(Environment.NIL.getType())),
+                        "null"
                 )
         );
     }

@@ -63,7 +63,6 @@ public final class Lexer {
     public Lexer(String input) {
         chars = new CharStream(input);
     }
-    // TODO: Ask WTF is happening with the indexes
     List<Token> tokenList = new ArrayList<Token>();
     private static final String whiteSpace = new String(new char[] {'\n', '\b', '\r', '\t', ' '});
     /**

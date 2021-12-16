@@ -64,7 +64,10 @@ final class InterpreterTests {
                 // VAL name = 1;
                 Arguments.of("Immutable", new Ast.Global("name", false, Optional.of(new Ast.Expression.Literal(BigInteger.ONE))), BigInteger.ONE),
                 // Var z = 3;
-                Arguments.of("Var z = 3", new Ast.Global("z", true, Optional.of(new Ast.Expression.Literal(BigInteger.valueOf(3)))), BigInteger.valueOf(3))
+                Arguments.of("Var z = 3", new Ast.Global("z", true, Optional.of(new Ast.Expression.Literal(BigInteger.valueOf(3)))), BigInteger.valueOf(3)),
+                // TODO: Ask about this test case
+                // VAR name = log(1)
+                Arguments.of("Function Value", new Ast.Global("name", true, Optional.of(new Ast.Expression.Function("log", Arrays.asList(new Ast.Expression.Literal(new BigDecimal(1)))))), BigDecimal.valueOf(0.0))
         );
     }
 
@@ -173,6 +176,18 @@ final class InterpreterTests {
     }
 
     @Test
+    void testVariableAssignmentImmutableStatement() {
+        // variable = 1;
+        Scope scope = new Scope(null);
+        scope.defineVariable("immutable", true, Environment.create("immutable"));
+        test(new Ast.Statement.Assignment(
+                new Ast.Expression.Access(Optional.empty(),"immutable"),
+                new Ast.Expression.Literal(BigInteger.TEN)
+        ), Environment.NIL.getValue(), scope);
+        Assertions.assertEquals(BigInteger.TEN, scope.lookupVariable("immutable").getValue().getValue());
+    }
+
+    @Test
     void testListAssignmentStatement() {
         // list[2] = 3;
 
@@ -253,8 +268,8 @@ final class InterpreterTests {
 
         Assertions.assertEquals(new Character('n'), scope.lookupVariable("letter").getValue().getValue());
     }
+
     @Test
-    // TODO: Ask for help on this
     void testFinalSwitchStatement() {
 
         Scope scope = new Scope(null);
@@ -363,7 +378,6 @@ final class InterpreterTests {
 
     @ParameterizedTest
     @MethodSource
-    // TODO: Ask to check the exponent test cases
     void testBinaryExpression(String test, Ast ast, Object expected) {
         test(ast, expected, new Scope(null));
     }
@@ -484,6 +498,7 @@ final class InterpreterTests {
                         ),
                         false
                 ),
+                // TODO: make sure to check short circuit logic for this when free
                 Arguments.of("Or Final",
                         new Ast.Expression.Binary("||",
                                 new Ast.Expression.Literal(true),
@@ -491,10 +506,9 @@ final class InterpreterTests {
                         ),
                         true
                 ),
-                // TODO: Ask about this test case
                 Arguments.of("And(Short Circuit) Final",
                         new Ast.Expression.Binary("&&",
-                                new Ast.Expression.Literal(true),
+                                new Ast.Expression.Literal(false),
                                 new Ast.Expression.Access(Optional.empty(), "undefined")
                         ),
                         false
@@ -564,7 +578,6 @@ final class InterpreterTests {
                         ),
                         true
                 ),
-                // TODO: Ask about this case
                 Arguments.of("Distinct Types Final",
                         new Ast.Expression.Binary("!=",
                                 new Ast.Expression.Literal(BigInteger.ONE),
@@ -698,15 +711,14 @@ final class InterpreterTests {
                                 new Ast.Expression.Literal(BigDecimal.valueOf(1.7))
                         ),
                         null
-                )
-                // TODO: Ask about this case
-                /*Arguments.of("Exponent Huge LHS Final",
+                ),
+                Arguments.of("Exponent Huge LHS Final",
                         new Ast.Expression.Binary("^",
-                                new Ast.Expression.Literal(2147483648),
-                                new Ast.Expression.Literal(BigInteger.valueOf(-3))
+                                new Ast.Expression.Literal(new BigInteger("2147483648")),
+                                new Ast.Expression.Literal(new BigInteger("10"))
                         ),
-                        BigDecimal.valueOf(1.0/(8.0 * 8.0 * 8.0))
-                ),*/
+                        new BigInteger("2147483648").pow(10)
+                )
         );
     }
 
@@ -718,7 +730,6 @@ final class InterpreterTests {
         test(ast, expected, scope);
     }
 
-    // TODO: Ask about what the list[1] test should look like
     private static Stream<Arguments> testAccessExpression() {
         return Stream.of(
                 // variable

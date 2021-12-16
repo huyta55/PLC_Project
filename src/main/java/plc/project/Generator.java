@@ -85,9 +85,7 @@ public final class Generator implements Ast.Visitor<Void> {
         // Mutable
         if ((ast.getValue().isPresent()) && (ast.getValue().get() instanceof Ast.Expression.PlcList)) {
             print(ast.getVariable().getType().getJvmName(), "[] ", ast.getName());
-            if (ast.getValue().isPresent()) {
-                print(" = ", ast.getValue().get());
-            }
+            print(" = ", ast.getValue().get());
             print(";");
         }
         else if (ast.getMutable()) {
@@ -294,6 +292,10 @@ public final class Generator implements Ast.Visitor<Void> {
             print("'", ast.getLiteral(), "'");
             return null;
         }
+        if (ast.getType().equals(Environment.Type.NIL)) {
+            print("null");
+            return null;
+        }
         // Printing the literal value found in the AST
         print(ast.getLiteral());
         return null;
@@ -365,12 +367,14 @@ public final class Generator implements Ast.Visitor<Void> {
     public Void visit(Ast.Expression.PlcList ast) {
         // print brace
         print ("{");
-        for (int i = 0; i < ast.getValues().size(); ++i) {
-            // printing the current list value
-            print(ast.getValues().get(i));
-            // if not the last value, print comma and space
-            if (i < ast.getValues().size() - 1) {
-                print(", ");
+        if (!ast.getValues().isEmpty()) {
+            for (int i = 0; i < ast.getValues().size(); ++i) {
+                // printing the current list value
+                print(ast.getValues().get(i));
+                // if not the last value, print comma and space
+                if (i < ast.getValues().size() - 1) {
+                    print(", ");
+                }
             }
         }
         print("}");

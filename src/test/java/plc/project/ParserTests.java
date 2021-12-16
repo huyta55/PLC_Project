@@ -116,11 +116,24 @@ final class ParserTests {
                                 Arrays.asList(new Ast.Global("x", "Integer", true, Optional.of(new Ast.Expression.Access(Optional.empty(), "expr"))), new Ast.Global("y", "Integer", true, Optional.of(new Ast.Expression.Access(Optional.empty(), "expr"))), new Ast.Global("z", "Integer", true, Optional.of(new Ast.Expression.Access(Optional.empty(), "expr")))),
                                 Arrays.asList()
                         )
+                ),
+                Arguments.of("Global - Mutable Declaration",
+                        Arrays.asList(
+                                // VAR x: Decimal;
+                                new Token(Token.Type.IDENTIFIER, "VAR", 0),
+                                new Token(Token.Type.IDENTIFIER, "x", 4),
+                                new Token(Token.Type.OPERATOR, ":", 5),
+                                new Token(Token.Type.IDENTIFIER, "Decimal", 7),
+                                new Token(Token.Type.OPERATOR, ";", 14)
+                        ),
+                        new Ast.Source(
+                                Arrays.asList(new Ast.Global("x", "Decimal", true, Optional.empty())),
+                                Arrays.asList()
+                        )
                 )
 
         );
     }
-    // TODO: Ask how to write Function Missing End (Just write it like test Source but instead of calling parseSource call parseFunction
 
     @ParameterizedTest
     @MethodSource
@@ -129,7 +142,7 @@ final class ParserTests {
     }
     private static Stream<Arguments> testFunction() {
         return Stream.of(
-                Arguments.of("Function Missing End Modified Final",
+                Arguments.of("Function Modified Final",
                     Arrays.asList(
                             //FUN name(): Type DO stmt; END
                             new Token(Token.Type.IDENTIFIER, "FUN", 0),
@@ -149,7 +162,7 @@ final class ParserTests {
                 ),
                 Arguments.of("Function Missing End Modified Final",
                         Arrays.asList(
-                                //FUN name(): Type DO stmt; END
+                                //FUN name(): Type DO stmt;
                                 new Token(Token.Type.IDENTIFIER, "FUN", 0),
                                 new Token(Token.Type.IDENTIFIER, "name", 4),
                                 new Token(Token.Type.OPERATOR, "(", 8),
@@ -165,7 +178,6 @@ final class ParserTests {
         );
     }
 
-    // TODO: Ask how to write Global Declaration (same thing as function missing end)
     @ParameterizedTest
     @MethodSource
     void testExpressionStatement(String test, List<Token> tokens, Ast.Statement.Expression expected) {
@@ -349,6 +361,7 @@ final class ParserTests {
                 )
         );
     }
+
     @ParameterizedTest
     @MethodSource
     void testIfStatement(String test, List<Token> tokens, Ast.Statement.If expected) {
@@ -517,7 +530,6 @@ final class ParserTests {
     void testLiteralExpression(String test, List<Token> tokens, Ast.Expression.Literal expected) {
         test(tokens, expected, Parser::parseExpression);
     }
-    // TODO: Ask about the char escapes
     private static Stream<Arguments> testLiteralExpression() {
         return Stream.of(
                 Arguments.of("Decimal Literal Final",
@@ -565,11 +577,11 @@ final class ParserTests {
                         new Ast.Expression.Literal("This is a string")
                 ),
                 Arguments.of("Char Escape b Modified Final",
-                        Arrays.asList(new Token(Token.Type.CHARACTER, "'\b'", 0)),
-                        new Ast.Expression.Literal("\b")
+                        Arrays.asList(new Token(Token.Type.CHARACTER, "\'\b\'", 0)),
+                        new Ast.Expression.Literal('\b')
                 ),
                 Arguments.of("String Escape n Modified Final",
-                        Arrays.asList(new Token(Token.Type.CHARACTER, "\"\b\"", 0)),
+                        Arrays.asList(new Token(Token.Type.STRING, "\"\b\"", 0)),
                         new Ast.Expression.Literal("\b")
                 )
         );

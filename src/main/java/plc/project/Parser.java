@@ -43,13 +43,13 @@ public final class Parser {
     }
     private void parseSemicolon() {
         if (!peek(";")) {
-            throw new ParseException("Missing ;", tokens.index);
+            throwException("Missing ;", 0);
         }
         tokens.advance();
     }
     private void parseColon() {
         if (!peek(":")) {
-            throw new ParseException("Missing :", tokens.index);
+            throwException("Missing :", 0);
         }
         tokens.advance();
     }
@@ -87,10 +87,6 @@ public final class Parser {
                     }
                 } else {
                     globalList.add(parseGlobal());
-                    checkToken();
-                    if (!match(";")) {
-                        throwException("Expecting Semicolon", 1);
-                    }
                 }
             }
             while (match("FUN")) {
@@ -136,9 +132,7 @@ public final class Parser {
         if (match(Token.Type.IDENTIFIER)) {
             String name = tokens.get(-1).getLiteral();
             // Check for the :
-            if (!tokens.has(0)) {
-                throwException("Missing :", 0);
-            }
+            checkToken();
             if (match(":")) {
                 // Check for the identifier after the :
                 if (!tokens.has(0)) {
@@ -227,7 +221,12 @@ public final class Parser {
                 if (!tokens.has(0)) {
                     throw new ParseException("Expecting Identifier", tokens.get(-1).getIndex() + tokens.get(-1).getLiteral().length());
                 }
-                return new Ast.Global(name, typeName, true, Optional.of(parseExpression()));
+                Optional expr = Optional.of(parseExpression());
+                // check for the closing semicolon
+                if (!match(";")) {
+                    throwException("Missing Semicolon", 0);
+                }
+                return new Ast.Global(name, typeName, true, expr);
             }
             // if there's a token there, but it's not the =, then throw exception
             else if (tokens.has(0) && !match(";")) {
@@ -467,8 +466,8 @@ public final class Parser {
                     tokens.advance();
                     return new Ast.Statement.Assignment(current, value);
                 } else {
-                    if (tokens.has(0)) throw new ParseException("missing ;", tokens.index);
-                    else throw new ParseException("missing  ;", tokens.index);
+                    if (tokens.has(0)) throw new ParseException("missing ;", tokens.get(-1).getIndex() + tokens.get(-1).getLiteral().length());
+                    else throw new ParseException("missing  ;", tokens.get(-1).getIndex() + tokens.get(-1).getLiteral().length());
                 }
             } else {
                 if (peek(";")) {
@@ -574,10 +573,6 @@ public final class Parser {
             casesList.add(parseCaseStatement());
         }
         if (match("DEFAULT")) {
-            // Check that the default case is not empty
-            if (peek("END")) {
-                throwException("Empty Switch!", 1);
-            }
             // Parses the case statements
             List<Ast.Statement> caseStatements = parseBlock();
             casesList.add(new Ast.Statement.Case(Optional.empty(), caseStatements));
@@ -795,7 +790,7 @@ public final class Parser {
         } else if (match("(")) {
             // If there's no expression between the ' ', then the '('expression')' rule fails and exception is thrown
             if (match(")")) {
-                throw new ParseException("Missing Expression", tokens.get(-1).getIndex());
+                throw new ParseException("Missing Expression", tokens.get(-1).getIndex() + tokens.get(-1).getLiteral().length());
             } else {
                 // if the next token after '(' isn't ')', that means that there is an expression in the middle, so we parse it
                 Ast.Expression a = parseExpression();
@@ -803,7 +798,7 @@ public final class Parser {
                 if (match(")")) {
                     return new Ast.Expression.Group(a);
                 } else {
-                    throw new ParseException("Unterminated Group", tokens.get(-1).getIndex());
+                    throw new ParseException("Unterminated Group", tokens.get(-1).getIndex() + tokens.get(-1).getLiteral().length());
                 }
 
             }

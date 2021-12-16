@@ -467,6 +467,14 @@ public final class AnalyzerTests {
                                 new Ast.Expression.Literal(BigDecimal.ONE)
                         ),
                         null
+                ),
+                Arguments.of("Equal Same Types Final",
+                        // 1 == 10.0
+                        new Ast.Expression.Binary("==",
+                                new Ast.Expression.Literal(BigInteger.ONE),
+                                new Ast.Expression.Literal(BigDecimal.ONE)
+                        ),
+                        null
                 )
         );
     }
